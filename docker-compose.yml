@@ -1,0 +1,140 @@
+version: '3.9'
+
+services:
+
+  # ── API Gateway ─────────────────────────────────────────────────────────────
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    ports:
+      - '80:80'
+    depends_on:
+      - auth-service
+      - inventario-service
+      - org-service
+      - operaciones-service
+      - financiero-service
+      - mantenimiento-service
+      - bus-service
+    networks:
+      - rentcar-net
+
+  # ── auth-service (HTTP 3001) ────────────────────────────────────────────────
+  auth-service:
+    build: ./auth-service
+    environment:
+      - DATABASE_URL=${AUTH_DATABASE_URL}
+      - DIRECT_URL=${AUTH_DIRECT_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
+      - PORT=3001
+      - NODE_ENV=${NODE_ENV:-production}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+    networks:
+      - rentcar-net
+    restart: unless-stopped
+
+  # ── inventario-service (HTTP 3002 | gRPC 5002) ──────────────────────────────
+  inventario-service:
+    build: ./inventario-service
+    environment:
+      - DATABASE_URL=${INVENTARIO_DATABASE_URL}
+      - DIRECT_URL=${INVENTARIO_DIRECT_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - PORT=3002
+      - GRPC_PORT=5002
+      - NODE_ENV=${NODE_ENV:-production}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+    networks:
+      - rentcar-net
+    restart: unless-stopped
+
+  # ── org-service (HTTP 3003 | gRPC 5003) ─────────────────────────────────────
+  org-service:
+    build: ./org-service
+    environment:
+      - DATABASE_URL=${ORG_DATABASE_URL}
+      - DIRECT_URL=${ORG_DIRECT_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - PORT=3003
+      - GRPC_PORT=5003
+      - NODE_ENV=${NODE_ENV:-production}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+    networks:
+      - rentcar-net
+    restart: unless-stopped
+
+  # ── operaciones-service (HTTP 3004 | gRPC 5004) ──────────────────────────────
+  operaciones-service:
+    build: ./operaciones-service
+    environment:
+      - DATABASE_URL=${OPERACIONES_DATABASE_URL}
+      - DIRECT_URL=${OPERACIONES_DIRECT_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - PORT=3004
+      - GRPC_PORT=5004
+      - NODE_ENV=${NODE_ENV:-production}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+      # gRPC clients: operaciones llama a inventario, org y financiero
+      - INVENTARIO_GRPC_HOST=inventario-service:5002
+      - ORG_GRPC_HOST=org-service:5003
+      - FINANCIERO_GRPC_HOST=financiero-service:5005
+    depends_on:
+      - inventario-service
+      - org-service
+      - financiero-service
+    networks:
+      - rentcar-net
+    restart: unless-stopped
+
+  # ── financiero-service (HTTP 3005 | gRPC 5005) ───────────────────────────────
+  financiero-service:
+    build: ./financiero-service
+    environment:
+      - DATABASE_URL=${FINANCIERO_DATABASE_URL}
+      - DIRECT_URL=${FINANCIERO_DIRECT_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - PORT=3005
+      - GRPC_PORT=5005
+      - NODE_ENV=${NODE_ENV:-production}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+    networks:
+      - rentcar-net
+    restart: unless-stopped
+
+  # ── mantenimiento-service (HTTP 3006) ────────────────────────────────────────
+  mantenimiento-service:
+    build: ./mantenimiento-service
+    environment:
+      - DATABASE_URL=${MANTENIMIENTO_DATABASE_URL}
+      - DIRECT_URL=${MANTENIMIENTO_DIRECT_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - PORT=3006
+      - NODE_ENV=${NODE_ENV:-production}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+    networks:
+      - rentcar-net
+    restart: unless-stopped
+
+  # ── bus-service (HTTP 3007) — Orquestador de eventos ─────────────────────────
+  bus-service:
+    build: ./bus-service
+    environment:
+      - JWT_SECRET=${JWT_SECRET}
+      - PORT=3007
+      - NODE_ENV=${NODE_ENV:-production}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+      - AZURE_SERVICEBUS_CONNECTION_STRING=${AZURE_SERVICEBUS_CONNECTION_STRING:-}
+      - AZURE_SERVICEBUS_TOPIC=${AZURE_SERVICEBUS_TOPIC:-rentcar-ec-eventos}
+      # gRPC client: bus llama a operaciones
+      - OPERACIONES_GRPC_HOST=operaciones-service:5004
+    depends_on:
+      - operaciones-service
+    networks:
+      - rentcar-net
+    restart: unless-stopped
+
+networks:
+  rentcar-net:
+    driver: bridge

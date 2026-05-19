@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package operaciones;
+
+service OperacionesService {
+  rpc CrearReserva        (CrearReservaRequest)        returns (OperacionResponse);
+  rpc CancelarReserva     (CancelarReservaRequest)     returns (OperacionResponse);
+  rpc IniciarAlquiler     (IniciarAlquilerRequest)     returns (OperacionResponse);
+  rpc RegistrarDevolucion (RegistrarDevolucionRequest) returns (OperacionResponse);
+}
+
+message ExtraInput {
+  string extra_id = 1;
+  int32  cantidad = 2;
+}
+
+message CrearReservaRequest {
+  string usuario_id     = 1;
+  string vehiculo_id    = 2;
+  string agencia_id     = 3;
+  string fecha_inicio   = 4;
+  string fecha_fin      = 5;
+  string seguro_id      = 6;
+  string canal_venta_id = 7;
+  string notas          = 8;
+  repeated ExtraInput extras = 9;
+}
+
+message CancelarReservaRequest {
+  string reserva_id = 1;
+  string usuario_id = 2;
+}
+
+message IniciarAlquilerRequest {
+  string reserva_id    = 1;
+  int32  km_salida     = 2;
+  string observaciones = 3;
+  string usuario_id    = 4;
+}
+
+message RegistrarDevolucionRequest {
+  string alquiler_id     = 1;
+  int32  km_entrada      = 2;
+  string estado_vehiculo = 3;
+  double cargo_extra     = 4;
+  string observaciones   = 5;
+}
+
+message OperacionResponse {
+  bool   success       = 1;
+  string data_json     = 2;
+  string error_message = 3;
+  int32  error_code    = 4;
+}

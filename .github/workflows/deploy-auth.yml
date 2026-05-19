@@ -1,0 +1,44 @@
+name: Deploy rentcar-auth
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - 'auth-service/**'
+
+env:
+  IMAGE_NAME: rentcar-auth
+  CONTAINER_APP: rentcar-auth
+  RESOURCE_GROUP: rg-urbancar
+  SERVICE_DIR: auth-service
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login ACR
+        run: docker login ${{ secrets.ACR_NAME }}.azurecr.io -u ${{ secrets.ACR_USERNAME }} -p ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build & Push
+        run: |
+          TAG=${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}
+          docker build -f ${{ env.SERVICE_DIR }}/Dockerfile \
+            -t $TAG:latest -t $TAG:${{ github.sha }} \
+            ${{ env.SERVICE_DIR }}
+          docker push $TAG:latest
+          docker push $TAG:${{ github.sha }}
+
+      - name: Deploy to Container App
+        run: |
+          az containerapp update \
+            --name ${{ env.CONTAINER_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            --revision-suffix ${GITHUB_SHA::8}

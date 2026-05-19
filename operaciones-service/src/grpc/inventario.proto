@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package inventario;
+
+service InventarioService {
+  rpc GetVehiculo (GetVehiculoRequest) returns (VehiculoResponse);
+  rpc UpdateVehiculoStatus (UpdateVehiculoStatusRequest) returns (UpdateStatusResponse);
+  rpc GetExtra (GetExtraRequest) returns (ExtraResponse);
+}
+
+message GetVehiculoRequest {
+  string id = 1;
+}
+
+message VehiculoResponse {
+  bool found       = 1;
+  string id        = 2;
+  string status    = 3;
+  double precio_dia = 4;
+  bool is_active   = 5;
+  string nombre    = 6;
+  string imagen_url = 7;
+  string agencia_id = 8;
+  string categoria  = 9;
+}
+
+message UpdateVehiculoStatusRequest {
+  string id          = 1;
+  string status      = 2;
+  int32  kilometraje = 3;
+}
+
+message UpdateStatusResponse {
+  bool success = 1;
+}
+
+message GetExtraRequest {
+  string id = 1;
+}
+
+message ExtraResponse {
+  bool   found     = 1;
+  string id        = 2;
+  double precio_dia = 3;
+  bool   is_active  = 4;
+  string nombre     = 5;
+}

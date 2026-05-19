@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package org;
+
+service OrgService {
+  rpc GetAgencia (GetAgenciaRequest) returns (AgenciaResponse);
+}
+
+message GetAgenciaRequest {
+  string id = 1;
+}
+
+message AgenciaResponse {
+  bool   found     = 1;
+  string id        = 2;
+  string nombre    = 3;
+  string ciudad_id = 4;
+  string direccion = 5;
+  string empresa   = 6;
+}

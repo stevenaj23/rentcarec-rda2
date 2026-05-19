@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package financiero;
+
+service FinancieroService {
+  rpc GetPagosByReserva (GetPagosByReservaRequest) returns (PagosResponse);
+}
+
+message GetPagosByReservaRequest {
+  string reserva_id = 1;
+}
+
+message Pago {
+  string id          = 1;
+  double monto       = 2;
+  string metodo_pago = 3;
+  string referencia  = 4;
+  string status      = 5;
+  string created_at  = 6;
+}
+
+message PagosResponse {
+  repeated Pago pagos = 1;
+}

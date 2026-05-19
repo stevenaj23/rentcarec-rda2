@@ -1,0 +1,931 @@
+openapi: 3.1.0
+info:
+  title: UrbanCar Booking Integration API
+  version: 1.0.0
+  description: |
+    Contrato oficial de integración para sistemas de booking externos.
+    Cubre autenticación, consulta de vehículos, ciclo completo de reservas,
+    alquileres, devoluciones y pagos.
+
+    ## Base URL
+    https://rentcar-ec-frontend.whiteisland-027d7f3d.canadacentral.azurecontainerapps.io/api/v1/stevenariel
+
+    ## Autenticación
+    Todos los endpoints (excepto POST /auth/login) requieren un JWT Bearer token.
+    - Algoritmo: HS256
+    - Header: `Authorization: Bearer <token>`
+    - El token contiene: `{ id, email, rol }` donde `rol` puede ser `ADMIN` o `CLIENTE`
+
+    ## Flujo recomendado
+    1. `POST /auth/login` → obtener JWT
+    2. `GET /vehiculos/booking` → listar vehículos disponibles
+    3. `GET /vehiculos/booking/{id}/disponibilidad` → verificar disponibilidad
+    4. `POST /reservas/booking` → crear reserva (vehículo pasa a RESERVADO)
+    5. `PATCH /reservas/booking/{reservaId}` con `{ "status": "CONFIRMADA" }` → confirmar
+    6. `POST /alquileres/booking` → iniciar alquiler (vehículo pasa a ALQUILADO)
+    7. `POST /devoluciones/booking` → registrar devolución (vehículo pasa a DISPONIBLE)
+    8. `GET /payment/booking/{reservaId}` → resumen de pagos
+
+servers:
+  - url: https://rentcar-ec-frontend.whiteisland-027d7f3d.canadacentral.azurecontainerapps.io/api/v1/stevenariel
+    description: Producción (Azure Container Apps)
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Auth
+    description: Autenticación y generación de tokens JWT
+  - name: Vehículos
+    description: Consulta de vehículos disponibles (sin autenticación requerida para lectura)
+  - name: Reservas
+    description: Gestión del ciclo de vida de reservas
+  - name: Alquileres
+    description: Inicio y gestión de alquileres activos
+  - name: Devoluciones
+    description: Registro de devoluciones de vehículos
+  - name: Pagos
+    description: Consulta de estado de pagos por reserva
+
+paths:
+
+  # ─────────────────────────────────────────
+  # AUTH
+  # ─────────────────────────────────────────
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Iniciar sesión y obtener JWT
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: admin@rentcar.ec
+              password: Admin2026!
+      responses:
+        '200':
+          description: Login exitoso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+              example:
+                success: true
+                data:
+                  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  user:
+                    id: uuid-admin
+                    email: admin@rentcar.ec
+                    nombre: Admin
+                    rol: ADMIN
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Registrar un nuevo usuario CLIENTE
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            example:
+              nombre: Juan Pérez
+              email: juan@example.com
+              password: Pass1234!
+              telefono: "+593991234567"
+      responses:
+        '201':
+          description: Usuario creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  # ─────────────────────────────────────────
+  # VEHÍCULOS (Booking — lectura pública)
+  # ─────────────────────────────────────────
+
+  /vehiculos/booking:
+    get:
+      tags: [Vehículos]
+      summary: Listar vehículos disponibles
+      description: Devuelve vehículos con status DISPONIBLE por defecto. No requiere autenticación.
+      security: []
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+        - name: agenciaId
+          in: query
+          schema: { type: string, format: uuid }
+          description: Filtrar por agencia
+        - name: categoriaId
+          in: query
+          schema: { type: string, format: uuid }
+          description: Filtrar por categoría
+        - name: status
+          in: query
+          schema: { type: string, enum: [DISPONIBLE, RESERVADO, ALQUILADO, MANTENIMIENTO] }
+          description: Filtrar por estado (default DISPONIBLE)
+      responses:
+        '200':
+          description: Lista paginada de vehículos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehiculoBookingListResponse'
+              example:
+                success: true
+                data:
+                  data:
+                    - id: uuid-vehiculo-1
+                      nombre: Toyota Corolla 2023
+                      descripcion: Sedán cómodo y económico
+                      precioPorDia: 45.00
+                      moneda: USD
+                      categoria: Sedán
+                      agenciaId: uuid-agencia-1
+                      disponible: true
+                      status: DISPONIBLE
+                      imagenUrl: https://...
+                  total: 1
+                  page: 1
+                  limit: 20
+                  totalPages: 1
+
+  /vehiculos/booking/{id}:
+    get:
+      tags: [Vehículos]
+      summary: Obtener detalle de un vehículo
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Detalle del vehículo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehiculoBookingDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /vehiculos/booking/{id}/disponibilidad:
+    get:
+      tags: [Vehículos]
+      summary: Verificar disponibilidad de un vehículo
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Estado de disponibilidad
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DisponibilidadResponse'
+              example:
+                success: true
+                data:
+                  vehiculoId: uuid-vehiculo-1
+                  disponible: true
+                  status: DISPONIBLE
+                  mensaje: El vehículo está disponible para alquiler
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ─────────────────────────────────────────
+  # RESERVAS
+  # ─────────────────────────────────────────
+
+  /reservas/booking:
+    post:
+      tags: [Reservas]
+      summary: Crear una nueva reserva
+      description: |
+        Crea una reserva para el usuario autenticado. El vehículo pasa automáticamente
+        a estado RESERVADO tras la creación exitosa.
+
+        El precio se calcula automáticamente:
+        - `totalAmount = (precioDia × dias) + (seguro.precioDia × dias) + suma(extras)`
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReservaBookingCreateRequest'
+            example:
+              vehiculoId: uuid-vehiculo-1
+              agenciaId: uuid-agencia-1
+              fechaInicio: "2026-06-01"
+              fechaFin: "2026-06-05"
+              seguroId: uuid-seguro-1
+              canalVentaId: uuid-canal-1
+              notas: Necesito silla para niños
+              extras:
+                - extraId: uuid-extra-gps
+                  cantidad: 1
+      responses:
+        '201':
+          description: Reserva creada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservaResponse'
+              example:
+                success: true
+                data:
+                  id: uuid-reserva-1
+                  codigoReserva: RES-M2K3X-A4B
+                  usuarioId: uuid-usuario-1
+                  vehiculoId: uuid-vehiculo-1
+                  agenciaId: uuid-agencia-1
+                  fechaInicio: "2026-06-01T00:00:00.000Z"
+                  fechaFin: "2026-06-05T00:00:00.000Z"
+                  diasTotal: 4
+                  precioBase: 180.00
+                  precioSeguro: 20.00
+                  precioExtras: 8.00
+                  totalAmount: 208.00
+                  status: PENDIENTE
+                  notas: Necesito silla para niños
+                  extras: []
+                  seguro: { id: uuid-seguro-1, nombre: Básico, precioDia: 5.00 }
+                  canalVenta: { id: uuid-canal-1, nombre: Web }
+                  createdAt: "2026-05-19T10:00:00.000Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /reservas/booking/{reservaId}:
+    patch:
+      tags: [Reservas]
+      summary: Actualizar estado de una reserva
+      description: |
+        Máquina de estados de la reserva:
+
+        | Estado actual | Transiciones permitidas |
+        |---|---|
+        | PENDIENTE | CONFIRMADA, CANCELADA |
+        | CONFIRMADA | ACTIVA, CANCELADA |
+        | ACTIVA | COMPLETADA, CANCELADA |
+        | COMPLETADA | (ninguna) |
+        | CANCELADA | (ninguna) |
+
+        Al cancelar: si el vehículo estaba RESERVADO o ALQUILADO, vuelve a DISPONIBLE.
+      parameters:
+        - name: reservaId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReservaBookingUpdateRequest'
+            examples:
+              confirmar:
+                summary: Confirmar reserva
+                value: { status: CONFIRMADA }
+              cancelar:
+                summary: Cancelar reserva
+                value: { status: CANCELADA }
+              activar:
+                summary: Activar (inicio alquiler)
+                value: { status: ACTIVA }
+              completar:
+                summary: Completar reserva
+                value: { status: COMPLETADA }
+      responses:
+        '200':
+          description: Reserva actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservaResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /reservas/{id}/cancel:
+    patch:
+      tags: [Reservas]
+      summary: Cancelar una reserva (alias frontend)
+      description: Alias de cancelación. Equivale a PATCH /reservas/booking/{reservaId} con `{ status: "CANCELADA" }`.
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Reserva cancelada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservaResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ─────────────────────────────────────────
+  # ALQUILERES
+  # ─────────────────────────────────────────
+
+  /alquileres/booking:
+    post:
+      tags: [Alquileres]
+      summary: Iniciar un alquiler
+      description: |
+        Crea el registro de alquiler activo a partir de una reserva CONFIRMADA.
+        El vehículo pasa a estado ALQUILADO.
+        La reserva debe estar en estado CONFIRMADA para poder iniciar el alquiler.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlquilerBookingCreateRequest'
+            example:
+              reservaId: uuid-reserva-1
+              vehiculoId: uuid-vehiculo-1
+              agenciaId: uuid-agencia-1
+              fechaInicio: "2026-06-01"
+              kmInicio: 45230
+              notas: Sin observaciones
+      responses:
+        '201':
+          description: Alquiler iniciado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlquilerResponse'
+              example:
+                success: true
+                data:
+                  id: uuid-alquiler-1
+                  reservaId: uuid-reserva-1
+                  vehiculoId: uuid-vehiculo-1
+                  agenciaId: uuid-agencia-1
+                  fechaInicio: "2026-06-01T00:00:00.000Z"
+                  kmInicio: 45230
+                  status: ACTIVO
+                  notas: Sin observaciones
+                  createdAt: "2026-06-01T08:00:00.000Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ─────────────────────────────────────────
+  # DEVOLUCIONES
+  # ─────────────────────────────────────────
+
+  /devoluciones/booking:
+    post:
+      tags: [Devoluciones]
+      summary: Registrar devolución de vehículo
+      description: |
+        Cierra el alquiler activo y registra la devolución del vehículo.
+        El vehículo vuelve a estado DISPONIBLE (o MANTENIMIENTO si se especifica).
+        El cargo por kilómetros adicionales se calcula automáticamente si se configuró.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DevolucionBookingCreateRequest'
+            example:
+              alquilerId: uuid-alquiler-1
+              reservaId: uuid-reserva-1
+              vehiculoId: uuid-vehiculo-1
+              fechaDevolucion: "2026-06-05"
+              kmFin: 45680
+              combustibleNivel: LLENO
+              observaciones: Sin daños
+              cargosAdicionales: 0
+      responses:
+        '201':
+          description: Devolución registrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DevolucionResponse'
+              example:
+                success: true
+                data:
+                  id: uuid-devolucion-1
+                  alquilerId: uuid-alquiler-1
+                  reservaId: uuid-reserva-1
+                  vehiculoId: uuid-vehiculo-1
+                  fechaDevolucion: "2026-06-05T00:00:00.000Z"
+                  kmFin: 45680
+                  kmRecorridos: 450
+                  combustibleNivel: LLENO
+                  observaciones: Sin daños
+                  cargosAdicionales: 0
+                  createdAt: "2026-06-05T10:00:00.000Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ─────────────────────────────────────────
+  # PAGOS
+  # ─────────────────────────────────────────
+
+  /payment/booking/{reservaId}:
+    get:
+      tags: [Pagos]
+      summary: Obtener resumen de pagos de una reserva
+      description: |
+        Devuelve todos los pagos registrados para una reserva, junto con el
+        total reservado, total pagado y saldo pendiente.
+      parameters:
+        - name: reservaId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+          description: ID de la reserva
+      responses:
+        '200':
+          description: Resumen de pagos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentBookingResponse'
+              example:
+                success: true
+                data:
+                  reservaId: uuid-reserva-1
+                  codigoReserva: RES-M2K3X-A4B
+                  totalReserva: 208.00
+                  totalPagado: 208.00
+                  saldoPendiente: 0.00
+                  estado: PAGADO
+                  pagos:
+                    - id: uuid-pago-1
+                      monto: 208.00
+                      metodoPago: TARJETA
+                      referencia: TXN-2026-001
+                      status: COMPLETADO
+                      createdAt: "2026-05-19T10:05:00.000Z"
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /pagos:
+    post:
+      tags: [Pagos]
+      summary: Registrar un pago
+      description: Registra un pago para una reserva. Cualquier usuario autenticado puede registrar pagos.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PagoCreateRequest'
+            example:
+              reservaId: uuid-reserva-1
+              monto: 208.00
+              metodoPago: TARJETA
+              referencia: TXN-2026-001
+      responses:
+        '201':
+          description: Pago registrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagoResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+# ─────────────────────────────────────────────────
+# COMPONENTS
+# ─────────────────────────────────────────────────
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT HS256. Obtener con POST /auth/login.
+        Payload: `{ id: string, email: string, rol: "ADMIN" | "CLIENTE", iat: number, exp: number }`
+
+  parameters:
+    IdParam:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+      description: UUID del recurso
+
+  responses:
+    Unauthorized:
+      description: Token ausente o inválido
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example:
+            success: false
+            error: { code: UNAUTHORIZED, message: Token inválido o expirado }
+
+    NotFound:
+      description: Recurso no encontrado
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example:
+            success: false
+            error: { code: NOT_FOUND, message: Recurso no encontrado }
+
+    BadRequest:
+      description: Datos de entrada inválidos
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example:
+            success: false
+            error: { code: VALIDATION_ERROR, message: El vehículo no está disponible }
+
+    Conflict:
+      description: Conflicto con el estado actual
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example:
+            success: false
+            error: { code: CONFLICT, message: El email ya está registrado }
+
+  schemas:
+
+    ErrorResponse:
+      type: object
+      properties:
+        success: { type: boolean, example: false }
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 6 }
+
+    LoginResponse:
+      type: object
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          properties:
+            token: { type: string, description: JWT Bearer token }
+            user:
+              type: object
+              properties:
+                id: { type: string, format: uuid }
+                email: { type: string, format: email }
+                nombre: { type: string }
+                rol: { type: string, enum: [ADMIN, CLIENTE] }
+
+    RegisterRequest:
+      type: object
+      required: [nombre, email, password]
+      properties:
+        nombre: { type: string }
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8 }
+        telefono: { type: string }
+
+    VehiculoBookingDto:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        nombre: { type: string, description: "Marca + modelo + año" }
+        descripcion: { type: string, nullable: true }
+        precioPorDia: { type: number, format: float }
+        moneda: { type: string, example: USD }
+        categoria: { type: string, nullable: true }
+        agenciaId: { type: string, format: uuid, nullable: true }
+        disponible: { type: boolean }
+        status: { type: string, enum: [DISPONIBLE, RESERVADO, ALQUILADO, MANTENIMIENTO] }
+        imagenUrl: { type: string, nullable: true }
+
+    VehiculoBookingListResponse:
+      type: object
+      properties:
+        success: { type: boolean }
+        data:
+          type: object
+          properties:
+            data:
+              type: array
+              items: { $ref: '#/components/schemas/VehiculoBookingDto' }
+            total: { type: integer }
+            page: { type: integer }
+            limit: { type: integer }
+            totalPages: { type: integer }
+
+    VehiculoBookingDetailResponse:
+      type: object
+      properties:
+        success: { type: boolean }
+        data: { $ref: '#/components/schemas/VehiculoBookingDto' }
+
+    DisponibilidadResponse:
+      type: object
+      properties:
+        success: { type: boolean }
+        data:
+          type: object
+          properties:
+            vehiculoId: { type: string, format: uuid }
+            disponible: { type: boolean }
+            status: { type: string }
+            mensaje: { type: string }
+
+    ReservaBookingCreateRequest:
+      type: object
+      required: [vehiculoId, agenciaId, fechaInicio, fechaFin]
+      properties:
+        vehiculoId:
+          type: string
+          format: uuid
+          description: ID del vehículo a reservar (debe estar en estado DISPONIBLE)
+        agenciaId:
+          type: string
+          format: uuid
+          description: ID de la agencia donde se recoge el vehículo
+        fechaInicio:
+          type: string
+          format: date
+          description: "Formato: YYYY-MM-DD"
+          example: "2026-06-01"
+        fechaFin:
+          type: string
+          format: date
+          description: "Formato: YYYY-MM-DD"
+          example: "2026-06-05"
+        seguroId:
+          type: string
+          format: uuid
+          nullable: true
+          description: ID del seguro adicional (opcional)
+        canalVentaId:
+          type: string
+          format: uuid
+          nullable: true
+          description: ID del canal de venta (opcional)
+        notas:
+          type: string
+          nullable: true
+          description: Notas adicionales del cliente
+        extras:
+          type: array
+          description: Extras adicionales (GPS, silla infantil, etc.)
+          items:
+            type: object
+            required: [extraId, cantidad]
+            properties:
+              extraId: { type: string, format: uuid }
+              cantidad: { type: integer, minimum: 1, default: 1 }
+
+    ReservaBookingUpdateRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [CONFIRMADA, CANCELADA, ACTIVA, COMPLETADA]
+          description: Nuevo estado de la reserva (ver máquina de estados)
+
+    ReservaResponse:
+      type: object
+      properties:
+        success: { type: boolean }
+        data:
+          type: object
+          properties:
+            id: { type: string, format: uuid }
+            codigoReserva: { type: string, example: RES-M2K3X-A4B }
+            usuarioId: { type: string, format: uuid }
+            vehiculoId: { type: string, format: uuid }
+            agenciaId: { type: string, format: uuid }
+            seguroId: { type: string, format: uuid, nullable: true }
+            canalVentaId: { type: string, format: uuid, nullable: true }
+            fechaInicio: { type: string, format: date-time }
+            fechaFin: { type: string, format: date-time }
+            diasTotal: { type: integer }
+            precioBase: { type: number }
+            precioSeguro: { type: number }
+            precioExtras: { type: number }
+            totalAmount: { type: number }
+            status:
+              type: string
+              enum: [PENDIENTE, CONFIRMADA, ACTIVA, COMPLETADA, CANCELADA]
+            notas: { type: string, nullable: true }
+            extras:
+              type: array
+              items:
+                type: object
+                properties:
+                  extraId: { type: string, format: uuid }
+                  cantidad: { type: integer }
+                  precioDia: { type: number }
+                  subtotal: { type: number }
+            seguro:
+              type: object
+              nullable: true
+              properties:
+                id: { type: string, format: uuid }
+                nombre: { type: string }
+                precioDia: { type: number }
+            canalVenta:
+              type: object
+              nullable: true
+              properties:
+                id: { type: string, format: uuid }
+                nombre: { type: string }
+            createdAt: { type: string, format: date-time }
+            updatedAt: { type: string, format: date-time }
+
+    AlquilerBookingCreateRequest:
+      type: object
+      required: [reservaId, vehiculoId, agenciaId, fechaInicio, kmInicio]
+      properties:
+        reservaId:
+          type: string
+          format: uuid
+          description: ID de la reserva CONFIRMADA
+        vehiculoId:
+          type: string
+          format: uuid
+        agenciaId:
+          type: string
+          format: uuid
+        fechaInicio:
+          type: string
+          format: date
+          example: "2026-06-01"
+        kmInicio:
+          type: integer
+          description: Kilometraje del vehículo al inicio del alquiler
+          example: 45230
+        notas:
+          type: string
+          nullable: true
+
+    AlquilerResponse:
+      type: object
+      properties:
+        success: { type: boolean }
+        data:
+          type: object
+          properties:
+            id: { type: string, format: uuid }
+            reservaId: { type: string, format: uuid }
+            vehiculoId: { type: string, format: uuid }
+            agenciaId: { type: string, format: uuid }
+            fechaInicio: { type: string, format: date-time }
+            kmInicio: { type: integer }
+            status: { type: string, enum: [ACTIVO, FINALIZADO] }
+            notas: { type: string, nullable: true }
+            createdAt: { type: string, format: date-time }
+
+    DevolucionBookingCreateRequest:
+      type: object
+      required: [alquilerId, reservaId, vehiculoId, fechaDevolucion, kmFin]
+      properties:
+        alquilerId:
+          type: string
+          format: uuid
+          description: ID del alquiler activo
+        reservaId:
+          type: string
+          format: uuid
+        vehiculoId:
+          type: string
+          format: uuid
+        fechaDevolucion:
+          type: string
+          format: date
+          example: "2026-06-05"
+        kmFin:
+          type: integer
+          description: Kilometraje del vehículo al momento de la devolución
+          example: 45680
+        combustibleNivel:
+          type: string
+          enum: [LLENO, TRES_CUARTOS, MEDIO, UN_CUARTO, VACIO]
+          default: LLENO
+        observaciones:
+          type: string
+          nullable: true
+        cargosAdicionales:
+          type: number
+          default: 0
+          description: Cargos adicionales por daños, combustible, etc.
+
+    DevolucionResponse:
+      type: object
+      properties:
+        success: { type: boolean }
+        data:
+          type: object
+          properties:
+            id: { type: string, format: uuid }
+            alquilerId: { type: string, format: uuid }
+            reservaId: { type: string, format: uuid }
+            vehiculoId: { type: string, format: uuid }
+            fechaDevolucion: { type: string, format: date-time }
+            kmFin: { type: integer }
+            kmRecorridos: { type: integer }
+            combustibleNivel: { type: string }
+            observaciones: { type: string, nullable: true }
+            cargosAdicionales: { type: number }
+            createdAt: { type: string, format: date-time }
+
+    PaymentBookingResponse:
+      type: object
+      properties:
+        success: { type: boolean }
+        data:
+          type: object
+          properties:
+            reservaId: { type: string, format: uuid }
+            codigoReserva: { type: string }
+            totalReserva: { type: number }
+            totalPagado: { type: number }
+            saldoPendiente: { type: number }
+            estado:
+              type: string
+              enum: [PENDIENTE, PARCIAL, PAGADO]
+            pagos:
+              type: array
+              items:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  monto: { type: number }
+                  metodoPago:
+                    type: string
+                    enum: [EFECTIVO, TARJETA, TRANSFERENCIA, PAYPAL]
+                  referencia: { type: string, nullable: true }
+                  status:
+                    type: string
+                    enum: [PENDIENTE, COMPLETADO, FALLIDO]
+                  createdAt: { type: string, format: date-time }
+
+    PagoCreateRequest:
+      type: object
+      required: [reservaId, monto, metodoPago]
+      properties:
+        reservaId:
+          type: string
+          format: uuid
+        monto:
+          type: number
+          minimum: 0.01
+        metodoPago:
+          type: string
+          enum: [EFECTIVO, TARJETA, TRANSFERENCIA, PAYPAL]
+        referencia:
+          type: string
+          nullable: true
+          description: Referencia de transacción externa
+
+    PagoResponse:
+      type: object
+      properties:
+        success: { type: boolean }
+        data:
+          type: object
+          properties:
+            id: { type: string, format: uuid }
+            reservaId: { type: string, format: uuid }
+            monto: { type: number }
+            metodoPago: { type: string }
+            referencia: { type: string, nullable: true }
+            status: { type: string }
+            createdAt: { type: string, format: date-time }
