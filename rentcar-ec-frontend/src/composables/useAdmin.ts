@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query';
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api/v1';
 
 function getToken() {
-  return localStorage.getItem('rentcar_token');
+  return localStorage.getItem('rentcar_ec_token');
 }
 
 function authHeaders() {
@@ -24,8 +24,8 @@ function extractData(response: unknown) {
 
 function handleUnauthorized(res: Response) {
   if (res.status === 401) {
-    localStorage.removeItem('rentcar_token');
-    localStorage.removeItem('rentcar_user');
+    localStorage.removeItem('rentcar_ec_token');
+    localStorage.removeItem('rentcar_ec_user');
     window.location.href = '/login';
     throw new Error('Sesión expirada');
   }
