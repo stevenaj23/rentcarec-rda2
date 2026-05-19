@@ -1,13 +1,13 @@
 export const swaggerSpec = {
   openapi: '3.0.3',
   info: {
-    title: 'UrbanCar — Operaciones Service',
+    title: 'RentCar EC — Operaciones Service',
     version: '1.0.0',
     description: 'Gestión de reservas, alquileres, devoluciones, seguros, tarifas y canales de venta.',
   },
   servers: [
     { url: 'http://localhost:3004', description: 'Local' },
-    { url: 'https://urbancar-operaciones.azurewebsites.net', description: 'Azure (producción)' },
+    { url: 'https://rentcar-operaciones.whiteisland-027d7f3d.canadacentral.azurecontainerapps.io', description: 'Azure (producción)' },
   ],
   components: {
     securitySchemes: {
@@ -265,7 +265,7 @@ export const swaggerSpec = {
                 required: ['vehiculoId', 'clienteId', 'fechaInicio', 'fechaFin'],
                 properties: {
                   vehiculoId:  { type: 'string', format: 'uuid' },
-                  clienteId:   { type: 'string', format: 'uuid', description: 'ID del usuario cliente en UrbanCar' },
+                  clienteId:   { type: 'string', format: 'uuid', description: 'ID del usuario cliente en RentCar EC' },
                   agenciaId:   { type: 'string', format: 'uuid', description: 'Opcional; se deriva del vehículo si no se envía' },
                   fechaInicio: { type: 'string', format: 'date', example: '2026-06-01' },
                   fechaFin:    { type: 'string', format: 'date', example: '2026-06-05' },

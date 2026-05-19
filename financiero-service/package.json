@@ -1,7 +1,7 @@
 {
   "name": "financiero-service",
   "version": "1.0.0",
-  "description": "UrbanCar — Microservicio de Pagos y Facturación",
+  "description": "RentCar EC — Microservicio de Pagos y Facturación",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",

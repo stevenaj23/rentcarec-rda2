@@ -1,13 +1,13 @@
 export const swaggerSpec = {
   openapi: '3.0.3',
   info: {
-    title: 'UrbanCar — Auth Service',
+    title: 'RentCar EC — Auth Service',
     version: '1.0.0',
     description: 'Microservicio de autenticación y gestión de usuarios.',
   },
   servers: [
     { url: 'http://localhost:3001', description: 'Local' },
-    { url: 'https://urbancar-auth.azurewebsites.net', description: 'Azure (producción)' },
+    { url: 'https://rentcar-auth.whiteisland-027d7f3d.canadacentral.azurecontainerapps.io', description: 'Azure (producción)' },
   ],
   components: {
     securitySchemes: {
@@ -18,7 +18,7 @@ export const swaggerSpec = {
         type: 'object',
         required: ['email', 'password', 'nombres', 'apellidos'],
         properties: {
-          email:     { type: 'string', format: 'email', example: 'cliente@urban.com' },
+          email:     { type: 'string', format: 'email', example: 'cliente@rentcarec.com' },
           password:  { type: 'string', minLength: 6, example: '123456' },
         
         },
@@ -27,7 +27,7 @@ export const swaggerSpec = {
         type: 'object',
         required: ['email', 'password'],
         properties: {
-          email:    { type: 'string', format: 'email', example: 'admin@urban.com' },
+          email:    { type: 'string', format: 'email', example: 'admin@rentcarec.com' },
           password: { type: 'string', example: '123456' },
         },
       },

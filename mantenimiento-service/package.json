@@ -1,7 +1,7 @@
 {
   "name": "mantenimiento-service",
   "version": "1.0.0",
-  "description": "UrbanCar — Microservicio de Mantenimiento y Kardex",
+  "description": "RentCar EC — Microservicio de Mantenimiento y Kardex",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",

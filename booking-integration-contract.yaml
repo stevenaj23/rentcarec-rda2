@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: UrbanCar Booking Integration API
+  title: RentCar EC Booking Integration API
   version: 1.0.0
   description: |
     Contrato oficial de integración para sistemas de booking externos.

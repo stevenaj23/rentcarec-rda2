@@ -1,13 +1,13 @@
 export const swaggerSpec = {
   openapi: '3.0.3',
   info: {
-    title: 'UrbanCar — Org Service',
+    title: 'RentCar EC — Org Service',
     version: '1.0.0',
     description: 'Gestión de empresas, agencias, provincias y ciudades.',
   },
   servers: [
     { url: 'http://localhost:3003', description: 'Local' },
-    { url: 'https://urbancar-org.azurewebsites.net', description: 'Azure (producción)' },
+    { url: 'https://rentcar-org.whiteisland-027d7f3d.canadacentral.azurecontainerapps.io', description: 'Azure (producción)' },
   ],
   components: {
     securitySchemes: {
@@ -18,7 +18,7 @@ export const swaggerSpec = {
         type: 'object',
         required: ['nombre', 'ruc'],
         properties: {
-          nombre:   { type: 'string', example: 'UrbanCar S.A.' },
+          nombre:   { type: 'string', example: 'RentCar EC S.A.' },
           ruc:      { type: 'string', example: '1790012345001' },
           email:    { type: 'string', format: 'email' },
           telefono: { type: 'string' },

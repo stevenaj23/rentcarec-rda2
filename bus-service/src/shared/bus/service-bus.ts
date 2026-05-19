@@ -7,7 +7,7 @@ let sender: ServiceBusSender | null = null;
 
 function initSender(): void {
   const connStr = process.env.AZURE_SERVICEBUS_CONNECTION_STRING;
-  const topic   = process.env.AZURE_SERVICEBUS_TOPIC ?? 'urbancar-eventos';
+  const topic   = process.env.AZURE_SERVICEBUS_TOPIC ?? 'rentcar-ec-eventos';
   if (!connStr) {
     console.warn('[bus-service] AZURE_SERVICEBUS_CONNECTION_STRING no configurado — modo local activo');
     return;

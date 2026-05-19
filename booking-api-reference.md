@@ -324,5 +324,5 @@ Todos los errores siguen la misma estructura:
 
 1. **Disponibilidad por fechas:** El endpoint `GET /vehiculos/booking/:id/disponibilidad` verifica el estado actual del vehículo. La validación por rango de fechas no está implementada en esta versión.
 2. **Campo `status` en PATCH:** El campo para actualizar el estado de una reserva es `status`, no `estado`.
-3. **`clienteId`:** Debe corresponder a un ID de usuario registrado en el sistema UrbanCar.
+3. **`clienteId`:** Debe corresponder a un ID de usuario registrado en el sistema RentCar EC.
 4. **Fechas:** Todas las fechas deben enviarse en formato ISO 8601 (`YYYY-MM-DDTHH:mm:ssZ`).

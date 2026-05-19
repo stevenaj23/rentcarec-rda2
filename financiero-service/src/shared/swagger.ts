@@ -1,13 +1,13 @@
 export const swaggerSpec = {
   openapi: '3.0.3',
   info: {
-    title: 'UrbanCar — Financiero Service',
+    title: 'RentCar EC — Financiero Service',
     version: '1.0.0',
     description: 'Gestión de pagos y facturas.',
   },
   servers: [
     { url: 'http://localhost:3005', description: 'Local' },
-    { url: 'https://urbancar-financiero.azurewebsites.net', description: 'Azure (producción)' },
+    { url: 'https://rentcar-financiero.whiteisland-027d7f3d.canadacentral.azurecontainerapps.io', description: 'Azure (producción)' },
   ],
   components: {
     securitySchemes: {

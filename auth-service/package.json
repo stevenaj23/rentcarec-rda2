@@ -1,7 +1,7 @@
 {
   "name": "auth-service",
   "version": "1.0.0",
-  "description": "UrbanCar — Microservicio de Autenticación y Usuarios",
+  "description": "RentCar EC — Microservicio de Autenticación y Usuarios",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",

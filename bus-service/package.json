@@ -1,7 +1,7 @@
 {
   "name": "bus-service",
   "version": "1.0.0",
-  "description": "UrbanCar — API Gateway / Orquestador con Azure Service Bus",
+  "description": "RentCar EC — Bus de Eventos / Orquestador con Azure Service Bus",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",

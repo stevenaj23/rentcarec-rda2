@@ -1,13 +1,13 @@
 export const swaggerSpec = {
   openapi: '3.0.3',
   info: {
-    title: 'UrbanCar — Inventario Service',
+    title: 'RentCar EC — Inventario Service',
     version: '1.0.0',
     description: 'Gestión de vehículos, marcas, modelos, categorías, combustibles, transmisiones y extras.',
   },
   servers: [
     { url: 'http://localhost:3002', description: 'Local' },
-    { url: 'https://urbancar-inventario.azurewebsites.net', description: 'Azure (producción)' },
+    { url: 'https://rentcar-inventario.whiteisland-027d7f3d.canadacentral.azurecontainerapps.io', description: 'Azure (producción)' },
   ],
   components: {
     securitySchemes: {

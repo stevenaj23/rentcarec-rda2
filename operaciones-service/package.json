@@ -1,7 +1,7 @@
 {
   "name": "operaciones-service",
   "version": "1.0.0",
-  "description": "UrbanCar — Microservicio de Reservas, Alquileres y Operaciones",
+  "description": "RentCar EC — Microservicio de Reservas, Alquileres y Operaciones",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",

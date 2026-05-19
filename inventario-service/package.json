@@ -1,7 +1,7 @@
 {
   "name": "inventario-service",
   "version": "1.0.0",
-  "description": "UrbanCar — Microservicio de Inventario de Vehículos y Catálogos",
+  "description": "RentCar EC — Microservicio de Inventario de Vehículos y Catálogos",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",

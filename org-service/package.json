@@ -1,7 +1,7 @@
 {
   "name": "org-service",
   "version": "1.0.0",
-  "description": "UrbanCar — Microservicio de Organizaciones y Ubicaciones",
+  "description": "RentCar EC — Microservicio de Organizaciones y Ubicaciones",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
