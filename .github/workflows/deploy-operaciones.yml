@@ -6,6 +6,8 @@ on:
     paths:
       - 'operaciones-service/**'
 
+  workflow_dispatch:
+
 env:
   IMAGE_NAME: rentcar-operaciones
   CONTAINER_APP: rentcar-operaciones

@@ -6,6 +6,8 @@ on:
     paths:
       - 'inventario-service/**'
 
+  workflow_dispatch:
+
 env:
   IMAGE_NAME: rentcar-inventario
   CONTAINER_APP: rentcar-inventario

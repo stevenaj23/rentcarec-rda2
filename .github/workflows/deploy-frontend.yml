@@ -6,6 +6,8 @@ on:
     paths:
       - 'rentcar-ec-frontend/**'
 
+  workflow_dispatch:
+
 env:
   IMAGE_NAME: rentcar-ec-frontend
   CONTAINER_APP: rentcar-ec-frontend

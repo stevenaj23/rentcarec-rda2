@@ -6,6 +6,8 @@ on:
     paths:
       - 'mantenimiento-service/**'
 
+  workflow_dispatch:
+
 env:
   IMAGE_NAME: rentcar-mantenimiento
   CONTAINER_APP: rentcar-mantenimiento
