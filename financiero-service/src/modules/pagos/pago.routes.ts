@@ -7,10 +7,8 @@ import { PagoCreateSchema, PagoUpdateSchema } from './pago.dto.js';
 export function createPagoRouter(controller: PagoController): Router {
   const router = Router();
 
-  router.use(authenticate);
-
-  router.get('/',    controller.listAll);
-  router.get('/:id', controller.getById);
+  router.get('/',    authenticate, controller.listAll);
+  router.get('/:id', authenticate, controller.getById);
 
   router.post('/',
     validateBody(PagoCreateSchema),
@@ -18,6 +16,7 @@ export function createPagoRouter(controller: PagoController): Router {
   );
 
   router.patch('/:id',
+    authenticate,
     requireAdmin,
     validateBody(PagoUpdateSchema),
     controller.update,
