@@ -81,7 +81,11 @@ export class ReservaController {
   create = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { vehiculoId, agenciaId, seguroId, canalVentaId, fechaInicio, fechaFin, notas, extras } = req.body;
-      const usuarioId = req.user!.id;
+      const usuarioId = req.user?.id ?? req.body.usuarioId ?? req.body.clienteId;
+      if (!usuarioId) {
+        res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'usuarioId o clienteId es requerido' } });
+        return;
+      }
       const invClient = getInventarioClient();
 
       const vehiculo = await invClient.getVehiculo(vehiculoId);

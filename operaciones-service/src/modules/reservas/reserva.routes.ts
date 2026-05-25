@@ -12,13 +12,12 @@ export function createReservaRouter(controller: ReservaController): Router {
   router.get('/:id', authenticate, controller.getById);
 
   router.post('/',
-    authenticate,
     validateBody(ReservaCreateSchema),
     controller.create,
   );
 
-  router.patch('/:id/cancelar', authenticate, controller.cancel);
-  router.patch('/:id/cancel',   authenticate, controller.cancel);
+  router.patch('/:id/cancelar', controller.cancel);
+  router.patch('/:id/cancel',   controller.cancel);
 
   router.patch('/:id',
     authenticate, requireAdmin,

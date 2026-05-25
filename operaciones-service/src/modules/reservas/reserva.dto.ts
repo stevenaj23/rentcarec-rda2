@@ -4,7 +4,9 @@ const fechaDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inv√
 
 export const ReservaCreateSchema = z.object({
   vehiculoId:   z.string().uuid('vehiculoId debe ser UUID'),
-  agenciaId:    z.string().uuid('agenciaId debe ser UUID'),
+  agenciaId:    z.string().uuid('agenciaId debe ser UUID').optional(),
+  usuarioId:    z.string().uuid().optional(),
+  clienteId:    z.string().uuid().optional(),
   seguroId:     z.string().uuid().optional(),
   canalVentaId: z.string().uuid().optional(),
   fechaInicio:  fechaDate,
