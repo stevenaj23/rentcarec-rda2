@@ -50,6 +50,7 @@ jobs:
             --revision-suffix ${GITHUB_SHA::8} \
             --set-env-vars \
               INVENTARIO_GRPC_HOST=rentcar-inventario:5002 \
+              INVENTARIO_SERVICE_URL=https://rentcar-inventario.internal.whiteisland-027d7f3d.canadacentral.azurecontainerapps.io \
               ORG_GRPC_HOST=rentcar-org:5003 \
               FINANCIERO_GRPC_HOST=rentcar-financiero:5005 \
               AUTH_SERVICE_URL=http://rentcar-auth

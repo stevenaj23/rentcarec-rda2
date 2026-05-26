@@ -18,7 +18,8 @@ function loadPackage(host: string) {
 
 function call<T>(stub: any, method: string, req: object): Promise<T> {
   return new Promise((resolve, reject) => {
-    stub[method](req, (err: any, res: T) => {
+    const deadline = new Date(Date.now() + 5_000);
+    stub[method](req, { deadline }, (err: any, res: T) => {
       if (err) return reject(err);
       resolve(res);
     });

@@ -6,7 +6,8 @@ import { getOrgClient }        from '../../grpc/org.grpc-client.js';
 import { getFinancieroClient } from '../../grpc/financiero.grpc-client.js';
 import { logger }              from '../../shared/logger.js';
 
-const AUTH_SERVICE_URL = process.env['AUTH_SERVICE_URL'] ?? 'http://auth-service';
+const AUTH_SERVICE_URL      = process.env['AUTH_SERVICE_URL']      ?? 'http://auth-service';
+const INVENTARIO_SERVICE_URL = process.env['INVENTARIO_SERVICE_URL'] ?? 'http://localhost:3002';
 
 async function fetchUsuario(usuarioId: string, token: string): Promise<{ id: string; nombres: string; apellidos: string; email: string } | null> {
   try {
@@ -35,11 +36,29 @@ function calcularDias(inicio: string, fin: string): number {
   return Math.ceil(ms / (1000 * 60 * 60 * 24));
 }
 
+async function fetchVehiculoHttp(vehiculoId: string): Promise<{ nombre: string; placa: string; precio_dia: number } | null> {
+  try {
+    const res = await fetch(`${INVENTARIO_SERVICE_URL}/api/v1/stevenariel/vehiculos/${vehiculoId}`);
+    if (!res.ok) return null;
+    const json = await res.json() as any;
+    const v = json?.data;
+    if (!v) return null;
+    const nombre = [
+      v.modelo?.marca?.nombre ?? '',
+      v.modelo?.nombre       ?? '',
+      v.anio,
+    ].filter(Boolean).join(' ').trim() || v.placa || `Vehículo #${vehiculoId.slice(0, 8)}`;
+    return { nombre, placa: v.placa ?? '', precio_dia: Number(v.precioDia ?? v.precio_dia ?? 0) };
+  } catch {
+    return null;
+  }
+}
+
 async function enrichReservas(reservas: any[]): Promise<any[]> {
   const invClient = getInventarioClient();
   const orgClient = getOrgClient();
   return Promise.all(reservas.map(async (r) => {
-    const [vehiculoRes, agenciaRes] = await Promise.all([
+    const [vehiculoGrpc, agenciaRes] = await Promise.all([
       r.vehiculoId ? invClient.getVehiculo(r.vehiculoId).catch((err: any) => {
         logger.warn({ vehiculoId: r.vehiculoId, err: err?.message }, 'gRPC getVehiculo fallido');
         return null;
@@ -49,9 +68,16 @@ async function enrichReservas(reservas: any[]): Promise<any[]> {
         return null;
       }) : null,
     ]);
-    const vehiculo = vehiculoRes?.found
-      ? vehiculoRes
-      : r.vehiculoId ? { nombre: `Vehículo #${r.vehiculoId.slice(0, 8)}`, placa: '', precio_dia: 0 } : null;
+
+    let vehiculo: any = null;
+    if (vehiculoGrpc?.found) {
+      vehiculo = vehiculoGrpc;
+    } else if (r.vehiculoId) {
+      const http = await fetchVehiculoHttp(r.vehiculoId);
+      vehiculo = http ?? { nombre: `Vehículo #${r.vehiculoId.slice(0, 8)}`, placa: '', precio_dia: 0 };
+      if (http) logger.debug({ vehiculoId: r.vehiculoId }, 'vehiculo obtenido por HTTP (fallback)');
+    }
+
     const agencia = agenciaRes?.found ? agenciaRes : null;
     return { ...r, vehiculo, agencia };
   }));

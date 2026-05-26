@@ -60,7 +60,7 @@
       <template #cell-status="{ row }">
         <select
           :value="row.status"
-          @change="handleStatusChange(row.id, ($event.target as HTMLSelectElement).value)"
+          @change="confirmStatusChange(row.id, row.status, ($event.target as HTMLSelectElement).value, $event.target as HTMLSelectElement)"
           @click.stop
           class="badge border-0 cursor-pointer focus:outline-none bg-transparent"
           :class="STATUS_MAP[row.status as ReservaStatus]?.cls ?? 'bg-zinc-800 text-zinc-400'"
@@ -311,6 +311,17 @@ async function handleStatusChange(id: string, status: string) {
   catch (err: unknown) {
     statusError.value = (err as { message?: string }).message ?? 'Error al actualizar estado';
   }
+}
+
+function confirmStatusChange(id: string, currentStatus: string, newStatus: string, selectEl: HTMLSelectElement) {
+  if (newStatus === currentStatus) return;
+  const label = STATUS_MAP[newStatus as ReservaStatus]?.label ?? newStatus;
+  const ok = window.confirm(`¿Cambiar estado a "${label}"?`);
+  if (!ok) {
+    selectEl.value = currentStatus;
+    return;
+  }
+  handleStatusChange(id, newStatus);
 }
 </script>
 
