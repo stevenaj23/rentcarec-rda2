@@ -158,14 +158,17 @@ export class ReservaController {
         res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'usuarioId o clienteId es requerido' } });
         return;
       }
-      const invClient = getInventarioClient();
 
-      const vehiculo = await invClient.getVehiculo(vehiculoId);
-      if (!vehiculo.found) throw new NotFoundException('Vehiculo', vehiculoId);
-      if (vehiculo.status !== 'DISPONIBLE') throw new ValidationException('El vehículo no está disponible');
+      // Obtener vehículo via HTTP (funciona en Azure Container Apps sin gRPC)
+      const vehiculoHttpRes = await fetch(`${INVENTARIO_SERVICE_URL}/api/v1/stevenariel/vehiculos/${vehiculoId}`);
+      if (!vehiculoHttpRes.ok) throw new NotFoundException('Vehiculo', vehiculoId);
+      const vehiculoJson = await vehiculoHttpRes.json() as any;
+      const vehiculoData = vehiculoJson?.data;
+      if (!vehiculoData) throw new NotFoundException('Vehiculo', vehiculoId);
+      if (vehiculoData.status !== 'DISPONIBLE') throw new ValidationException('El vehículo no está disponible');
 
       const dias       = calcularDias(fechaInicio, fechaFin);
-      const precioBase = vehiculo.precio_dia * dias;
+      const precioBase = Number(vehiculoData.precioDia ?? vehiculoData.precio_dia ?? 0) * dias;
 
       let precioSeguro = 0;
       if (seguroId) {
@@ -177,11 +180,15 @@ export class ReservaController {
       const extrasData: any[] = [];
       if (extras?.length) {
         for (const e of extras) {
-          const extra = await invClient.getExtra(e.extraId);
-          if (!extra.found) throw new NotFoundException('Extra', e.extraId);
-          const subtotal = extra.precio_dia * e.cantidad * dias;
+          const extraHttpRes = await fetch(`${INVENTARIO_SERVICE_URL}/api/v1/stevenariel/extras/${e.extraId}`);
+          if (!extraHttpRes.ok) throw new NotFoundException('Extra', e.extraId);
+          const extraJson = await extraHttpRes.json() as any;
+          const extraData = extraJson?.data;
+          if (!extraData) throw new NotFoundException('Extra', e.extraId);
+          const precioDiaExtra = Number(extraData.precioDia ?? extraData.precio_dia ?? 0);
+          const subtotal = precioDiaExtra * e.cantidad * dias;
           precioExtras += subtotal;
-          extrasData.push({ extraId: e.extraId, cantidad: e.cantidad, precioDia: extra.precio_dia, subtotal });
+          extrasData.push({ extraId: e.extraId, cantidad: e.cantidad, precioDia: precioDiaExtra, subtotal });
         }
       }
 
@@ -197,7 +204,11 @@ export class ReservaController {
       });
 
       // Fire-and-forget: marcar vehículo como RESERVADO
-      invClient.updateVehiculoStatus(vehiculoId, 'RESERVADO').catch(() => {});
+      fetch(`${INVENTARIO_SERVICE_URL}/api/v1/stevenariel/vehiculos/booking/${vehiculoId}/status`, {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ status: 'RESERVADO' }),
+      }).catch(() => {});
 
       // Fire-and-forget: guardar nombre del cliente para futuras consultas del panel
       const authHeader = req.headers.authorization ?? '';
