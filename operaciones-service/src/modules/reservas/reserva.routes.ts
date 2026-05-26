@@ -12,6 +12,7 @@ export function createReservaRouter(controller: ReservaController): Router {
   router.get('/:id', authenticate, controller.getById);
 
   router.post('/',
+    authenticate,
     validateBody(ReservaCreateSchema),
     controller.create,
   );
