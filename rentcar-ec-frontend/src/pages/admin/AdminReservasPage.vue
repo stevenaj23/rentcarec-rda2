@@ -5,9 +5,29 @@
       <button @click="statusError = null" class="text-red-400 hover:text-red-200 text-lg leading-none">&times;</button>
     </div>
 
+    <!-- Filtros -->
+    <div class="flex flex-wrap items-center gap-3 mb-4">
+      <select v-model="filterStatus" class="input-base text-sm py-2 px-3 w-auto">
+        <option value="">Todos los estados</option>
+        <option v-for="[val, { label }] in Object.entries(STATUS_MAP)" :key="val" :value="val">{{ label }}</option>
+      </select>
+      <div class="flex items-center gap-2">
+        <input v-model="filterDesde" type="date" class="input-base text-sm py-2 px-3 w-auto" title="Desde" />
+        <span class="text-zinc-600 text-xs">—</span>
+        <input v-model="filterHasta" type="date" class="input-base text-sm py-2 px-3 w-auto" title="Hasta" />
+      </div>
+      <button
+        v-if="filterStatus || filterDesde || filterHasta"
+        @click="filterStatus = ''; filterDesde = ''; filterHasta = ''"
+        class="text-xs text-zinc-500 hover:text-zinc-300 flex items-center gap-1 transition-colors"
+      >
+        <X class="w-3 h-3" /> Limpiar filtros
+      </button>
+    </div>
+
     <AdminTable
       title="Reservas"
-      :data="reservas"
+      :data="reservasFiltradas"
       :columns="columns"
       :is-loading="isLoading"
       :on-view="openDetail"
@@ -245,9 +265,9 @@ type ReservaRow = Reserva & { clienteNombre?: string; placa?: string };
 
 const columns = [
   { key: 'codigoReserva', label: 'Código'   },
-  { key: 'vehiculo',      label: 'Vehículo' },
-  { key: 'usuario',       label: 'Cliente'  },
-  { key: 'fechas',        label: 'Fechas'   },
+  { key: 'vehiculo',      label: 'Vehículo', sortable: false },
+  { key: 'usuario',       label: 'Cliente',  sortable: false },
+  { key: 'fechas',        label: 'Fechas',   sortable: false },
   { key: 'totalAmount',   label: 'Total'    },
   { key: 'status',        label: 'Estado'   },
 ];
@@ -261,6 +281,9 @@ const { data, isLoading } = useAdminReservas();
 const updateStatus = useAdminUpdateReservaStatus();
 const statusError  = ref<string | null>(null);
 const detail       = ref<Reserva | null>(null);
+const filterStatus = ref('');
+const filterDesde  = ref('');
+const filterHasta  = ref('');
 
 const reservas = computed<ReservaRow[]>(() => {
   const arr = Array.isArray(data.value) ? data.value as Reserva[] : [];
@@ -269,6 +292,15 @@ const reservas = computed<ReservaRow[]>(() => {
     clienteNombre: `${r.usuario?.nombres ?? ''} ${r.usuario?.apellidos ?? ''}`.trim(),
     placa: r.vehiculo?.placa ?? '',
   }));
+});
+
+const reservasFiltradas = computed(() => {
+  return reservas.value.filter(r => {
+    if (filterStatus.value && r.status !== filterStatus.value) return false;
+    if (filterDesde.value && r.fechaInicio < filterDesde.value) return false;
+    if (filterHasta.value && r.fechaFin   > filterHasta.value) return false;
+    return true;
+  });
 });
 
 function openDetail(row: ReservaRow) { detail.value = row; }

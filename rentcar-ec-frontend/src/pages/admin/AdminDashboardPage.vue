@@ -101,7 +101,7 @@
                 </div>
                 <div class="min-w-0">
                   <p class="text-zinc-200 text-xs font-semibold truncate">
-                    {{ r.vehiculo?.modelo?.marca?.nombre }} {{ r.vehiculo?.modelo?.nombre }}
+                    {{ r.vehiculo?.nombre ?? '—' }}
                   </p>
                   <p class="text-zinc-600 text-[10px] font-mono truncate">
                     #{{ r.codigoReserva }} · {{ r.usuario?.nombres }} {{ r.usuario?.apellidos }}
