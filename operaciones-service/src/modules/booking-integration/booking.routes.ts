@@ -22,6 +22,14 @@ async function fetchVehiculo(vehiculoId: string): Promise<any | null> {
   finally { clearTimeout(timer); }
 }
 
+function patchVehiculoStatus(vehiculoId: string, status: string): void {
+  fetch(`${INVENTARIO_URL}/api/v1/stevenariel/vehiculos/${vehiculoId}`, {
+    method:  'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ status }),
+  }).catch(() => {});
+}
+
 function generarCodigo(): string {
   const ts  = Date.now().toString(36).toUpperCase();
   const rnd = Math.random().toString(36).substring(2, 5).toUpperCase();
@@ -182,6 +190,9 @@ export function createReservaBookingRouter(reservaRepo: ReservaRepository): Rout
         status:        'CONFIRMADA',
       });
 
+      // Fire-and-forget: marcar vehículo como RESERVADO
+      patchVehiculoStatus(vehiculoId, 'RESERVADO');
+
       res.status(201).json({ success: true, data: toReservaBookingDto(reserva) });
     } catch (err) { next(err); }
   });
@@ -229,6 +240,16 @@ export function createReservaBookingRouter(reservaRepo: ReservaRepository): Rout
       }
 
       const updated = await reservaRepo.update(req.params['id'] as string, { status: nuevoStatus });
+
+      // Sincronizar estado del vehículo según la transición
+      if (reserva.vehiculoId) {
+        if (nuevoStatus === 'CANCELADA') {
+          patchVehiculoStatus(reserva.vehiculoId, 'DISPONIBLE');
+        } else if (nuevoStatus === 'CONFIRMADA') {
+          patchVehiculoStatus(reserva.vehiculoId, 'RESERVADO');
+        }
+      }
+
       res.json({ success: true, data: toReservaBookingDto(updated) });
     } catch (err) { next(err); }
   });
