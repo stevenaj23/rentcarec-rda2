@@ -61,7 +61,8 @@ export interface Vehiculo {
   categoria: Categoria;
   tipoCombustible: TipoCombustible;
   tipoTransmision: TipoTransmision;
-  agencia: Agencia;
+  agenciaId?: string | null;
+  agencia?: Agencia | null;
   createdAt: string;
   updatedAt: string;
   // Campos presentes cuando el vehículo viene hidratado vía gRPC

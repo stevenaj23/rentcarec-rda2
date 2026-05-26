@@ -209,14 +209,14 @@ async function handleSubmit() {
   if (errFechaInicio) { submitError.value = errFechaInicio; return; }
   const errRango = V.rangoFechas(fechaInicio.value, fechaFin.value);
   if (errRango) { submitError.value = errRango; return; }
-  if (!v.value?.agencia?.id) {
+  if (!v.value?.agenciaId) {
     submitError.value = 'No se pudo obtener la agencia del vehículo. Recarga la página.';
     return;
   }
   try {
     const res = await createReserva.mutateAsync({
       vehiculoId,
-      agenciaId: v.value!.agencia.id,
+      agenciaId: v.value!.agenciaId,
       fechaInicio: fechaInicio.value,
       fechaFin:    fechaFin.value,
       seguroId:    seguroId.value || undefined,
