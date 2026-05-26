@@ -229,7 +229,7 @@ export class ReservaController {
         else if (nuevoStatus === 'CANCELADA' || nuevoStatus === 'COMPLETADA') vehiculoStatus = 'DISPONIBLE';
 
         if (vehiculoStatus) {
-          fetch(`${INVENTARIO_SERVICE_URL}/api/v1/stevenariel/vehiculos/${reserva.vehiculoId}`, {
+          fetch(`${INVENTARIO_SERVICE_URL}/api/v1/stevenariel/vehiculos/booking/${reserva.vehiculoId}/status`, {
             method:  'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body:    JSON.stringify({ status: vehiculoStatus }),
@@ -250,7 +250,7 @@ export class ReservaController {
       }
       const updated = await this.reservaRepository.update(req.params['id'] as string, { status: 'CANCELADA' });
       if (reserva.vehiculoId) {
-        fetch(`${INVENTARIO_SERVICE_URL}/api/v1/stevenariel/vehiculos/${reserva.vehiculoId}`, {
+        fetch(`${INVENTARIO_SERVICE_URL}/api/v1/stevenariel/vehiculos/booking/${reserva.vehiculoId}/status`, {
           method:  'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body:    JSON.stringify({ status: 'DISPONIBLE' }),

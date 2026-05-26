@@ -23,7 +23,7 @@ async function fetchVehiculo(vehiculoId: string): Promise<any | null> {
 }
 
 function patchVehiculoStatus(vehiculoId: string, status: string): void {
-  fetch(`${INVENTARIO_URL}/api/v1/stevenariel/vehiculos/${vehiculoId}`, {
+  fetch(`${INVENTARIO_URL}/api/v1/stevenariel/vehiculos/booking/${vehiculoId}/status`, {
     method:  'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify({ status }),
