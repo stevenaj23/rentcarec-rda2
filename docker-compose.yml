@@ -80,6 +80,8 @@ services:
       - INVENTARIO_GRPC_HOST=inventario-service:5002
       - ORG_GRPC_HOST=org-service:5003
       - FINANCIERO_GRPC_HOST=financiero-service:5005
+      # HTTP client: operaciones consulta usuarios en auth-service
+      - AUTH_SERVICE_URL=http://auth-service:3001
     depends_on:
       - inventario-service
       - org-service

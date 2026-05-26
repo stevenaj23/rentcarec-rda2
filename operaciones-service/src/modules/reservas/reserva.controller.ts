@@ -4,6 +4,25 @@ import { NotFoundException, ValidationException } from '../../shared/errors/Busi
 import { getInventarioClient } from '../../grpc/inventario.grpc-client.js';
 import { getOrgClient }        from '../../grpc/org.grpc-client.js';
 import { getFinancieroClient } from '../../grpc/financiero.grpc-client.js';
+import { logger }              from '../../shared/logger.js';
+
+const AUTH_SERVICE_URL = process.env['AUTH_SERVICE_URL'] ?? 'http://auth-service:3001';
+
+async function fetchUsuario(usuarioId: string, token: string): Promise<{ id: string; nombres: string; apellidos: string; email: string } | null> {
+  try {
+    const res = await fetch(`${AUTH_SERVICE_URL}/api/v1/stevenariel/usuarios/${usuarioId}`, {
+      headers: { Authorization: token },
+    });
+    if (!res.ok) return null;
+    const json = await res.json() as any;
+    const u = json?.data;
+    if (!u) return null;
+    return { id: usuarioId, nombres: u.nombres ?? '', apellidos: u.apellidos ?? '', email: u.email ?? '' };
+  } catch (err: any) {
+    logger.warn({ usuarioId, err: err?.message }, 'HTTP fetchUsuario fallido');
+    return null;
+  }
+}
 
 function generarCodigo(): string {
   const ts  = Date.now().toString(36).toUpperCase();
@@ -21,11 +40,28 @@ async function enrichReservas(reservas: any[]): Promise<any[]> {
   const orgClient = getOrgClient();
   return Promise.all(reservas.map(async (r) => {
     const [vehiculoRes, agenciaRes] = await Promise.all([
-      r.vehiculoId ? invClient.getVehiculo(r.vehiculoId).catch(() => null) : null,
-      r.agenciaId  ? orgClient.getAgencia(r.agenciaId).catch(() => null)  : null,
+      r.vehiculoId
+        ? invClient.getVehiculo(r.vehiculoId).catch((err: any) => {
+            logger.warn({ vehiculoId: r.vehiculoId, err: err?.message }, 'gRPC getVehiculo fallido');
+            return null;
+          })
+        : null,
+      r.agenciaId
+        ? orgClient.getAgencia(r.agenciaId).catch((err: any) => {
+            logger.warn({ agenciaId: r.agenciaId, err: err?.message }, 'gRPC getAgencia fallido');
+            return null;
+          })
+        : null,
     ]);
-    const vehiculo = vehiculoRes?.found ? vehiculoRes : null;
-    const agencia  = agenciaRes?.found  ? agenciaRes  : null;
+    const vehiculo = vehiculoRes?.found
+      ? vehiculoRes
+      : r.vehiculoId
+        ? { nombre: `Vehículo #${r.vehiculoId.slice(0, 8)}`, placa: '', precio_dia: 0 }
+        : null;
+    if (r.vehiculoId && !vehiculoRes?.found) {
+      logger.warn({ vehiculoId: r.vehiculoId, found: vehiculoRes?.found ?? 'sin-respuesta' }, 'vehiculo no encontrado en inventario');
+    }
+    const agencia = agenciaRes?.found ? agenciaRes : null;
     return { ...r, vehiculo, agencia };
   }));
 }
@@ -54,10 +90,20 @@ export class ReservaController {
       };
       const result   = await this.reservaRepository.findAll(page, limit, filters);
       const enriched = await enrichReservas(result.data);
-      // Adjunta usuarioId como objeto mínimo para que el frontend pueda mostrarlo
-      const withUser = enriched.map(r => ({
+
+      // Obtener datos reales de usuarios desde auth-service usando el JWT del admin
+      const token = req.headers.authorization ?? '';
+      const uniqueUserIds = [...new Set(enriched.map((r: any) => r.usuarioId).filter(Boolean))] as string[];
+      const usuariosMap = new Map<string, any>();
+      await Promise.all(uniqueUserIds.map(async (uid) => {
+        const u = await fetchUsuario(uid, token);
+        if (u) usuariosMap.set(uid, u);
+      }));
+
+      const withUser = enriched.map((r: any) => ({
         ...r,
-        usuario: r.usuario ?? (r.usuarioId ? { id: r.usuarioId, nombres: 'Cliente', apellidos: r.usuarioId.slice(0, 8), email: '' } : null),
+        usuario: usuariosMap.get(r.usuarioId)
+          ?? (r.usuarioId ? { id: r.usuarioId, nombres: 'Cliente', apellidos: r.usuarioId.slice(0, 8), email: '' } : null),
       }));
       res.json({ success: true, data: { ...result, data: withUser } });
     } catch (err) { next(err); }
