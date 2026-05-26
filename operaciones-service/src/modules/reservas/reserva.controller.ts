@@ -218,7 +218,26 @@ export class ReservaController {
     try {
       const reserva = await this.reservaRepository.findById(req.params['id'] as string);
       if (!reserva) throw new NotFoundException('Reserva', req.params['id'] as string);
-      res.json({ success: true, data: await this.reservaRepository.update(req.params['id'] as string, req.body) });
+      const updated = await this.reservaRepository.update(req.params['id'] as string, req.body);
+
+      // Sincronizar estado del vehículo cuando cambia el status de la reserva
+      const nuevoStatus: string | undefined = req.body.status;
+      if (nuevoStatus && reserva.vehiculoId && nuevoStatus !== reserva.status) {
+        let vehiculoStatus: string | null = null;
+        if (nuevoStatus === 'CONFIRMADA')                          vehiculoStatus = 'RESERVADO';
+        else if (nuevoStatus === 'ACTIVA')                         vehiculoStatus = 'EN_USO';
+        else if (nuevoStatus === 'CANCELADA' || nuevoStatus === 'COMPLETADA') vehiculoStatus = 'DISPONIBLE';
+
+        if (vehiculoStatus) {
+          fetch(`${INVENTARIO_SERVICE_URL}/api/v1/stevenariel/vehiculos/${reserva.vehiculoId}`, {
+            method:  'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ status: vehiculoStatus }),
+          }).catch(() => {});
+        }
+      }
+
+      res.json({ success: true, data: updated });
     } catch (err) { next(err); }
   };
 
