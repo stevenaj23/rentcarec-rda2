@@ -230,7 +230,7 @@ export class ReservaController {
         throw new ValidationException(`No se puede cancelar una reserva en estado ${reserva.status}`);
       }
       const updated = await this.reservaRepository.update(req.params['id'] as string, { status: 'CANCELADA' });
-      if (reserva.vehiculoId && reserva.status !== 'COMPLETADA') {
+      if (reserva.vehiculoId) {
         fetch(`${INVENTARIO_SERVICE_URL}/api/v1/stevenariel/vehiculos/${reserva.vehiculoId}`, {
           method:  'PATCH',
           headers: { 'Content-Type': 'application/json' },
