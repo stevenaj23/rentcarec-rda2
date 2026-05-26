@@ -191,6 +191,7 @@ export class ReservaController {
         precioBase, precioExtras, precioSeguro,
         totalAmount: precioBase + precioExtras + precioSeguro,
         codigoReserva: generarCodigo(),
+        status: 'CONFIRMADA',
         notas,
         extras: extrasData,
       });

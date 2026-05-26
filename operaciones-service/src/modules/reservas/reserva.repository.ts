@@ -59,6 +59,7 @@ export class ReservaRepository {
     precioSeguro: number;
     totalAmount:  number;
     codigoReserva: string;
+    status?:       string;
     notas?:        string;
     clienteNombre?: string;
     clienteEmail?:  string;

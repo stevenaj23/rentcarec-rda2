@@ -59,7 +59,7 @@ model Reserva {
   precioExtras  Decimal?        @default(0) @map("precio_extras") @db.Decimal(10, 2)
   precioSeguro  Decimal?        @default(0) @map("precio_seguro") @db.Decimal(10, 2)
   totalAmount   Decimal?        @map("total_amount") @db.Decimal(10, 2)
-  status        reserva_status? @default(PENDIENTE)
+  status        reserva_status? @default(CONFIRMADA)
   clienteNombre String?         @map("cliente_nombre")
   clienteEmail  String?         @map("cliente_email")
   notas         String?
