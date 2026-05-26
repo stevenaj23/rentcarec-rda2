@@ -18,6 +18,9 @@ env:
   RESOURCE_GROUP: rg-urbancar
   SERVICE_DIR: operaciones-service
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
