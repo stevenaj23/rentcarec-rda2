@@ -18,12 +18,15 @@ import { errorHandler } from './shared/errors/error.middleware.js';
 import { swaggerSpec } from './shared/swagger.js';
 import { authenticate, requireAdmin } from './shared/middlewares/auth.middleware.js';
 import prisma from './shared/database/prisma.js';
+import pinoHttp from 'pino-http';
+import { logger } from './shared/logger.js';
 
 const app = express();
 
 app.set('trust proxy', 1);
 app.use(cors({ origin: process.env.CORS_ORIGIN ?? '*' }));
 app.use(express.json());
+app.use(pinoHttp({ logger, autoLogging: { ignore: (req) => req.url === '/health' } }));
 
 app.get('/health', (_req, res) => {
   res.json({ service: 'operaciones-service', status: 'ok', timestamp: new Date().toISOString() });

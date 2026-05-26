@@ -8,12 +8,15 @@ import { createSistemaExternoRouter } from './modules/sistemas/sistema-externo.r
 import { mantenimientoController, kardexController, sistemaExternoController } from './shared/container.js';
 import { errorHandler } from './shared/errors/error.middleware.js';
 import { swaggerSpec } from './shared/swagger.js';
+import pinoHttp from 'pino-http';
+import { logger } from './shared/logger.js';
 
 const app = express();
 
 app.set('trust proxy', 1);
 app.use(cors({ origin: process.env.CORS_ORIGIN ?? '*' }));
 app.use(express.json());
+app.use(pinoHttp({ logger, autoLogging: { ignore: (req) => req.url === '/health' } }));
 
 app.get('/health', (_req, res) => {
   res.json({ service: 'mantenimiento-service', status: 'ok', timestamp: new Date().toISOString() });

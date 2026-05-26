@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { BusinessException } from './BusinessException.js';
+import { logger } from '../logger.js';
 
 export function errorHandler(err: any, _req: Request, res: Response, _next: NextFunction): void {
   if (err instanceof BusinessException) {
@@ -23,7 +24,7 @@ export function errorHandler(err: any, _req: Request, res: Response, _next: Next
     return;
   }
 
-  console.error('❌ Error no controlado:', err);
+  logger.error({ err }, 'Error no controlado');
   res.status(err.status || 500).json({
     success: false,
     error: {

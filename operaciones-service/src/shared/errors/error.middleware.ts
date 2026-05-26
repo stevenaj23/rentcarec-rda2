@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { BusinessException } from './BusinessException.js';
+import { logger } from '../logger.js';
 
 const PRISMA_ERROR_MAP: Record<string, { status: number; code: string; message: string }> = {
   P2002: { status: 409, code: 'CONFLICT',           message: 'Ya existe un registro con ese dato único' },
@@ -26,7 +27,7 @@ export function errorHandler(err: any, _req: Request, res: Response, _next: Next
     return;
   }
 
-  console.error('❌ Error no controlado:', err);
+  logger.error({ err }, 'Error no controlado');
   res.status(500).json({
     success: false,
     error: {
