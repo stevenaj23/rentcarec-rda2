@@ -6,7 +6,7 @@ import { getOrgClient }        from '../../grpc/org.grpc-client.js';
 import { getFinancieroClient } from '../../grpc/financiero.grpc-client.js';
 import { logger }              from '../../shared/logger.js';
 
-const AUTH_SERVICE_URL = process.env['AUTH_SERVICE_URL'] ?? 'http://auth-service:3001';
+const AUTH_SERVICE_URL = process.env['AUTH_SERVICE_URL'] ?? 'http://auth-service';
 
 async function fetchUsuario(usuarioId: string, token: string): Promise<{ id: string; nombres: string; apellidos: string; email: string } | null> {
   try {
@@ -40,27 +40,18 @@ async function enrichReservas(reservas: any[]): Promise<any[]> {
   const orgClient = getOrgClient();
   return Promise.all(reservas.map(async (r) => {
     const [vehiculoRes, agenciaRes] = await Promise.all([
-      r.vehiculoId
-        ? invClient.getVehiculo(r.vehiculoId).catch((err: any) => {
-            logger.warn({ vehiculoId: r.vehiculoId, err: err?.message }, 'gRPC getVehiculo fallido');
-            return null;
-          })
-        : null,
-      r.agenciaId
-        ? orgClient.getAgencia(r.agenciaId).catch((err: any) => {
-            logger.warn({ agenciaId: r.agenciaId, err: err?.message }, 'gRPC getAgencia fallido');
-            return null;
-          })
-        : null,
+      r.vehiculoId ? invClient.getVehiculo(r.vehiculoId).catch((err: any) => {
+        logger.warn({ vehiculoId: r.vehiculoId, err: err?.message }, 'gRPC getVehiculo fallido');
+        return null;
+      }) : null,
+      r.agenciaId ? orgClient.getAgencia(r.agenciaId).catch((err: any) => {
+        logger.warn({ agenciaId: r.agenciaId, err: err?.message }, 'gRPC getAgencia fallido');
+        return null;
+      }) : null,
     ]);
     const vehiculo = vehiculoRes?.found
       ? vehiculoRes
-      : r.vehiculoId
-        ? { nombre: `Vehículo #${r.vehiculoId.slice(0, 8)}`, placa: '', precio_dia: 0 }
-        : null;
-    if (r.vehiculoId && !vehiculoRes?.found) {
-      logger.warn({ vehiculoId: r.vehiculoId, found: vehiculoRes?.found ?? 'sin-respuesta' }, 'vehiculo no encontrado en inventario');
-    }
+      : r.vehiculoId ? { nombre: `Vehículo #${r.vehiculoId.slice(0, 8)}`, placa: '', precio_dia: 0 } : null;
     const agencia = agenciaRes?.found ? agenciaRes : null;
     return { ...r, vehiculo, agencia };
   }));

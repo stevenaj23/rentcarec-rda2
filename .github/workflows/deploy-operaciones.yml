@@ -43,4 +43,9 @@ jobs:
             --name ${{ env.CONTAINER_APP }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --image ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} \
-            --revision-suffix ${GITHUB_SHA::8}
+            --revision-suffix ${GITHUB_SHA::8} \
+            --set-env-vars \
+              INVENTARIO_GRPC_HOST=rentcar-inventario:5002 \
+              ORG_GRPC_HOST=rentcar-org:5003 \
+              FINANCIERO_GRPC_HOST=rentcar-financiero:5005 \
+              AUTH_SERVICE_URL=http://rentcar-auth
