@@ -64,6 +64,9 @@ export interface Vehiculo {
   agencia: Agencia;
   createdAt: string;
   updatedAt: string;
+  // Campos presentes cuando el vehículo viene hidratado vía gRPC
+  nombre?: string;
+  precio_dia?: number;
 }
 
 // ── Usuarios ──────────────────────────────────────────────────
