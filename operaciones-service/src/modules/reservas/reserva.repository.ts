@@ -65,12 +65,13 @@ export class ReservaRepository {
     clienteEmail?:  string;
     extras?: Array<{ extraId: string; cantidad: number; precioDia: number; subtotal: number }>;
   }) {
-    const { extras, fechaInicio, fechaFin, ...rest } = data;
+    const { extras, fechaInicio, fechaFin, status, ...rest } = data;
     return this.prisma.reserva.create({
       data: {
         ...rest,
         fechaInicio: new Date(`${fechaInicio}T00:00:00.000Z`),
         fechaFin:    new Date(`${fechaFin}T00:00:00.000Z`),
+        ...(status && { status: status as any }),
         ...(extras?.length && {
           extras: { create: extras },
         }),
