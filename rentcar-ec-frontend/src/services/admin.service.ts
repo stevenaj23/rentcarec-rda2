@@ -34,7 +34,7 @@ export const adminService = {
   deleteEmpresa: (id: string) =>
     apiClient.delete<ApiSuccess<any>>(`/empresas/${id}`),
 
-  // Catálogos públicos
+  // Catálogos — lectura
   getProvincias:    () => apiClient.get<ApiSuccess<Provincia[]>>('/provincias'),
   getCiudades:      () => apiClient.get<ApiSuccess<Ciudad[]>>('/ciudades'),
   getMarcas:        () => apiClient.get<ApiSuccess<Marca[]>>('/marcas'),
@@ -46,6 +46,35 @@ export const adminService = {
   getSeguros:       () => apiClient.get<ApiSuccess<Seguro[]>>('/seguros'),
   getTarifas:       () => apiClient.get<ApiSuccess<Tarifa[]>>('/tarifas'),
   getCanalesVenta:  () => apiClient.get<ApiSuccess<CanalVenta[]>>('/canales-venta'),
+
+  // Catálogos — escritura
+  createMarca:       (data: object) => apiClient.post<ApiSuccess<Marca>>('/marcas', data),
+  updateMarca:       (id: string, data: object) => apiClient.patch<ApiSuccess<Marca>>(`/marcas/${id}`, data),
+  deleteMarca:       (id: string) => apiClient.delete<ApiSuccess<any>>(`/marcas/${id}`),
+
+  createModelo:      (data: object) => apiClient.post<ApiSuccess<Modelo>>('/modelos', data),
+  updateModelo:      (id: string, data: object) => apiClient.patch<ApiSuccess<Modelo>>(`/modelos/${id}`, data),
+  deleteModelo:      (id: string) => apiClient.delete<ApiSuccess<any>>(`/modelos/${id}`),
+
+  createCategoria:   (data: object) => apiClient.post<ApiSuccess<Categoria>>('/categorias', data),
+  updateCategoria:   (id: string, data: object) => apiClient.patch<ApiSuccess<Categoria>>(`/categorias/${id}`, data),
+  deleteCategoria:   (id: string) => apiClient.delete<ApiSuccess<any>>(`/categorias/${id}`),
+
+  createCombustible: (data: object) => apiClient.post<ApiSuccess<TipoCombustible>>('/tipos-combustible', data),
+  updateCombustible: (id: string, data: object) => apiClient.patch<ApiSuccess<TipoCombustible>>(`/tipos-combustible/${id}`, data),
+  deleteCombustible: (id: string) => apiClient.delete<ApiSuccess<any>>(`/tipos-combustible/${id}`),
+
+  createTransmision: (data: object) => apiClient.post<ApiSuccess<TipoTransmision>>('/tipos-transmision', data),
+  updateTransmision: (id: string, data: object) => apiClient.patch<ApiSuccess<TipoTransmision>>(`/tipos-transmision/${id}`, data),
+  deleteTransmision: (id: string) => apiClient.delete<ApiSuccess<any>>(`/tipos-transmision/${id}`),
+
+  createExtra:       (data: object) => apiClient.post<ApiSuccess<ExtraEquipamiento>>('/extras', data),
+  updateExtra:       (id: string, data: object) => apiClient.patch<ApiSuccess<ExtraEquipamiento>>(`/extras/${id}`, data),
+  deleteExtra:       (id: string) => apiClient.delete<ApiSuccess<any>>(`/extras/${id}`),
+
+  createSeguro:      (data: object) => apiClient.post<ApiSuccess<Seguro>>('/seguros', data),
+  updateSeguro:      (id: string, data: object) => apiClient.patch<ApiSuccess<Seguro>>(`/seguros/${id}`, data),
+  deleteSeguro:      (id: string) => apiClient.delete<ApiSuccess<any>>(`/seguros/${id}`),
 
   // Mantenimientos
   getMantenimientos: (page = 1, limit = 50) => apiClient.get<ApiSuccess<any>>('/mantenimientos', { page, limit }),

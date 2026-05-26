@@ -65,7 +65,7 @@
 </template>
 
 <script setup lang="ts">
-import { Car, Building2, Building, BookOpen, Users, LayoutDashboard, LogOut, Key, CreditCard, FileText, RotateCcw, History, Activity, Wrench } from 'lucide-vue-next';
+import { Car, Building2, Building, BookOpen, Users, LayoutDashboard, LogOut, Key, CreditCard, FileText, RotateCcw, History, Activity, Wrench, Layers } from 'lucide-vue-next';
 import { useAuthStore } from '@/stores/auth';
 import { useRouter, useRoute } from 'vue-router';
 
@@ -86,6 +86,7 @@ const NAV = [
   { to: '/admin/mantenimientos', icon: Wrench,       label: 'Mantenimientos', end: false },
   { to: '/admin/kardex',         icon: Activity,    label: 'Kardex',         end: false },
   { to: '/admin/historial',      icon: History,     label: 'Historial',      end: false },
+  { to: '/admin/catalogos',      icon: Layers,      label: 'Catálogos',      end: false },
   { to: '/admin/users',          icon: Users,       label: 'Usuarios',       end: false },
 ];
 

@@ -65,6 +65,7 @@ const router = createRouter({
         { path: 'historial',        component: () => import('@/pages/admin/AdminHistorialPage.vue')      },
         { path: 'kardex',           component: () => import('@/pages/admin/AdminKardexPage.vue')         },
         { path: 'mantenimientos',   component: () => import('@/pages/admin/AdminMantenimientosPage.vue') },
+        { path: 'catalogos',        component: () => import('@/pages/admin/AdminCatalogosPage.vue')      },
         { path: 'users',            component: () => import('@/pages/admin/AdminUsersPage.vue')          },
       ],
     },

@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query';
+import { useToast } from './useToast';
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api/v1';
 
@@ -101,17 +102,19 @@ export function useAdminUsers() {
 }
 export function useUpdateUser() {
   const qc = useQueryClient();
+  const { show } = useToast();
   return useMutation({
     mutationFn: ({ id, ...body }: { id: string; [k: string]: unknown }) =>
       adminPatch(`/usuarios/${id}`, body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-usuarios'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-usuarios'] }); show('Usuario actualizado'); },
   });
 }
 export function useDeleteUser() {
   const qc = useQueryClient();
+  const { show } = useToast();
   return useMutation({
     mutationFn: (id: string) => adminDelete(`/usuarios/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-usuarios'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-usuarios'] }); show('Usuario eliminado'); },
   });
 }
 
@@ -121,24 +124,27 @@ export function useAdminAgencias() {
 }
 export function useCreateAgencia() {
   const qc = useQueryClient();
+  const { show } = useToast();
   return useMutation({
     mutationFn: (body: unknown) => adminPost('/agencias', body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-agencias'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-agencias'] }); show('Agencia creada'); },
   });
 }
 export function useUpdateAgencia() {
   const qc = useQueryClient();
+  const { show } = useToast();
   return useMutation({
     mutationFn: ({ id, ...body }: { id: string; [k: string]: unknown }) =>
       adminPatch(`/agencias/${id}`, body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-agencias'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-agencias'] }); show('Agencia actualizada'); },
   });
 }
 export function useDeleteAgencia() {
   const qc = useQueryClient();
+  const { show } = useToast();
   return useMutation({
     mutationFn: (id: string) => adminDelete(`/agencias/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-agencias'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-agencias'] }); show('Agencia eliminada'); },
   });
 }
 
@@ -153,24 +159,27 @@ export function useAdminEmpresas() {
 }
 export function useCreateEmpresa() {
   const qc = useQueryClient();
+  const { show } = useToast();
   return useMutation({
     mutationFn: (body: unknown) => adminPost('/empresas', body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-empresas'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-empresas'] }); show('Empresa creada'); },
   });
 }
 export function useUpdateEmpresa() {
   const qc = useQueryClient();
+  const { show } = useToast();
   return useMutation({
     mutationFn: ({ id, ...body }: { id: string; [k: string]: unknown }) =>
       adminPatch(`/empresas/${id}`, body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-empresas'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-empresas'] }); show('Empresa actualizada'); },
   });
 }
 export function useDeleteEmpresa() {
   const qc = useQueryClient();
+  const { show } = useToast();
   return useMutation({
     mutationFn: (id: string) => adminDelete(`/empresas/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-empresas'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-empresas'] }); show('Empresa eliminada'); },
   });
 }
 
@@ -193,21 +202,25 @@ export function useAdminAlquileres() {
 }
 export function useIniciarAlquiler() {
   const qc = useQueryClient();
+  const { show } = useToast();
   return useMutation({
     mutationFn: (body: unknown) => adminPost('/alquileres', body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-alquileres'] });
       qc.invalidateQueries({ queryKey: ['admin-reservas'] });
+      show('Alquiler iniciado');
     },
   });
 }
 export function useRegistrarDevolucion() {
   const qc = useQueryClient();
+  const { show } = useToast();
   return useMutation({
     mutationFn: (body: unknown) => adminPost('/devoluciones', body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-alquileres'] });
       qc.invalidateQueries({ queryKey: ['admin-reservas'] });
+      show('Devolución registrada');
     },
   });
 }
@@ -218,11 +231,13 @@ export function useAdminPagos() {
 }
 export function useCrearPago() {
   const qc = useQueryClient();
+  const { show } = useToast();
   return useMutation({
     mutationFn: (body: unknown) => adminPost('/pagos', body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-pagos'] });
       qc.invalidateQueries({ queryKey: ['admin-reservas'] });
+      show('Pago registrado');
     },
   });
 }
@@ -233,10 +248,12 @@ export function useAdminFacturas() {
 }
 export function useGenerarFactura() {
   const qc = useQueryClient();
+  const { show } = useToast();
   return useMutation({
     mutationFn: (body: unknown) => adminPost('/facturas', body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-facturas'] });
+      show('Factura generada');
     },
   });
 }
@@ -262,23 +279,236 @@ export function useAdminMantenimientos() {
 }
 export function useCrearMantenimiento() {
   const qc = useQueryClient();
+  const { show } = useToast();
   return useMutation({
     mutationFn: (body: unknown) => adminPost('/mantenimientos', body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-mantenimientos'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-mantenimientos'] }); show('Mantenimiento creado'); },
   });
 }
 export function useUpdateMantenimiento() {
   const qc = useQueryClient();
+  const { show } = useToast();
   return useMutation({
     mutationFn: ({ id, ...body }: { id: string; [k: string]: unknown }) =>
       adminPatch(`/mantenimientos/${id}`, body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-mantenimientos'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-mantenimientos'] }); show('Mantenimiento actualizado'); },
   });
 }
 export function useDeleteMantenimiento() {
   const qc = useQueryClient();
+  const { show } = useToast();
   return useMutation({
     mutationFn: (id: string) => adminDelete(`/mantenimientos/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-mantenimientos'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-mantenimientos'] }); show('Mantenimiento eliminado'); },
+  });
+}
+
+// Marcas
+export function useAdminMarcas() {
+  return useQuery({ queryKey: ['admin-marcas'], queryFn: () => adminGet('/marcas') });
+}
+export function useCreateMarca() {
+  const qc = useQueryClient();
+  const { show } = useToast();
+  return useMutation({
+    mutationFn: (body: unknown) => adminPost('/marcas', body),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-marcas'] }); show('Marca creada'); },
+  });
+}
+export function useUpdateMarca() {
+  const qc = useQueryClient();
+  const { show } = useToast();
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: string; [k: string]: unknown }) =>
+      adminPatch(`/marcas/${id}`, body),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-marcas'] }); show('Marca actualizada'); },
+  });
+}
+export function useDeleteMarca() {
+  const qc = useQueryClient();
+  const { show } = useToast();
+  return useMutation({
+    mutationFn: (id: string) => adminDelete(`/marcas/${id}`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-marcas'] }); show('Marca eliminada'); },
+  });
+}
+
+// Modelos
+export function useAdminModelos() {
+  return useQuery({ queryKey: ['admin-modelos'], queryFn: () => adminGet('/modelos') });
+}
+export function useCreateModelo() {
+  const qc = useQueryClient();
+  const { show } = useToast();
+  return useMutation({
+    mutationFn: (body: unknown) => adminPost('/modelos', body),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-modelos'] }); show('Modelo creado'); },
+  });
+}
+export function useUpdateModelo() {
+  const qc = useQueryClient();
+  const { show } = useToast();
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: string; [k: string]: unknown }) =>
+      adminPatch(`/modelos/${id}`, body),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-modelos'] }); show('Modelo actualizado'); },
+  });
+}
+export function useDeleteModelo() {
+  const qc = useQueryClient();
+  const { show } = useToast();
+  return useMutation({
+    mutationFn: (id: string) => adminDelete(`/modelos/${id}`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-modelos'] }); show('Modelo eliminado'); },
+  });
+}
+
+// Categorías
+export function useAdminCategorias() {
+  return useQuery({ queryKey: ['admin-categorias'], queryFn: () => adminGet('/categorias') });
+}
+export function useCreateCategoria() {
+  const qc = useQueryClient();
+  const { show } = useToast();
+  return useMutation({
+    mutationFn: (body: unknown) => adminPost('/categorias', body),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-categorias'] }); show('Categoría creada'); },
+  });
+}
+export function useUpdateCategoria() {
+  const qc = useQueryClient();
+  const { show } = useToast();
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: string; [k: string]: unknown }) =>
+      adminPatch(`/categorias/${id}`, body),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-categorias'] }); show('Categoría actualizada'); },
+  });
+}
+export function useDeleteCategoria() {
+  const qc = useQueryClient();
+  const { show } = useToast();
+  return useMutation({
+    mutationFn: (id: string) => adminDelete(`/categorias/${id}`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-categorias'] }); show('Categoría eliminada'); },
+  });
+}
+
+// Combustibles
+export function useAdminCombustibles() {
+  return useQuery({ queryKey: ['admin-combustibles'], queryFn: () => adminGet('/tipos-combustible') });
+}
+export function useCreateCombustible() {
+  const qc = useQueryClient();
+  const { show } = useToast();
+  return useMutation({
+    mutationFn: (body: unknown) => adminPost('/tipos-combustible', body),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-combustibles'] }); show('Combustible creado'); },
+  });
+}
+export function useUpdateCombustible() {
+  const qc = useQueryClient();
+  const { show } = useToast();
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: string; [k: string]: unknown }) =>
+      adminPatch(`/tipos-combustible/${id}`, body),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-combustibles'] }); show('Combustible actualizado'); },
+  });
+}
+export function useDeleteCombustible() {
+  const qc = useQueryClient();
+  const { show } = useToast();
+  return useMutation({
+    mutationFn: (id: string) => adminDelete(`/tipos-combustible/${id}`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-combustibles'] }); show('Combustible eliminado'); },
+  });
+}
+
+// Transmisiones
+export function useAdminTransmisiones() {
+  return useQuery({ queryKey: ['admin-transmisiones'], queryFn: () => adminGet('/tipos-transmision') });
+}
+export function useCreateTransmision() {
+  const qc = useQueryClient();
+  const { show } = useToast();
+  return useMutation({
+    mutationFn: (body: unknown) => adminPost('/tipos-transmision', body),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-transmisiones'] }); show('Transmisión creada'); },
+  });
+}
+export function useUpdateTransmision() {
+  const qc = useQueryClient();
+  const { show } = useToast();
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: string; [k: string]: unknown }) =>
+      adminPatch(`/tipos-transmision/${id}`, body),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-transmisiones'] }); show('Transmisión actualizada'); },
+  });
+}
+export function useDeleteTransmision() {
+  const qc = useQueryClient();
+  const { show } = useToast();
+  return useMutation({
+    mutationFn: (id: string) => adminDelete(`/tipos-transmision/${id}`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-transmisiones'] }); show('Transmisión eliminada'); },
+  });
+}
+
+// Extras
+export function useAdminExtras() {
+  return useQuery({ queryKey: ['admin-extras'], queryFn: () => adminGet('/extras') });
+}
+export function useCreateExtra() {
+  const qc = useQueryClient();
+  const { show } = useToast();
+  return useMutation({
+    mutationFn: (body: unknown) => adminPost('/extras', body),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-extras'] }); show('Extra creado'); },
+  });
+}
+export function useUpdateExtra() {
+  const qc = useQueryClient();
+  const { show } = useToast();
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: string; [k: string]: unknown }) =>
+      adminPatch(`/extras/${id}`, body),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-extras'] }); show('Extra actualizado'); },
+  });
+}
+export function useDeleteExtra() {
+  const qc = useQueryClient();
+  const { show } = useToast();
+  return useMutation({
+    mutationFn: (id: string) => adminDelete(`/extras/${id}`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-extras'] }); show('Extra eliminado'); },
+  });
+}
+
+// Seguros
+export function useAdminSeguros() {
+  return useQuery({ queryKey: ['admin-seguros'], queryFn: () => adminGet('/seguros') });
+}
+export function useCreateSeguro() {
+  const qc = useQueryClient();
+  const { show } = useToast();
+  return useMutation({
+    mutationFn: (body: unknown) => adminPost('/seguros', body),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-seguros'] }); show('Seguro creado'); },
+  });
+}
+export function useUpdateSeguro() {
+  const qc = useQueryClient();
+  const { show } = useToast();
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: string; [k: string]: unknown }) =>
+      adminPatch(`/seguros/${id}`, body),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-seguros'] }); show('Seguro actualizado'); },
+  });
+}
+export function useDeleteSeguro() {
+  const qc = useQueryClient();
+  const { show } = useToast();
+  return useMutation({
+    mutationFn: (id: string) => adminDelete(`/seguros/${id}`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-seguros'] }); show('Seguro eliminado'); },
   });
 }
