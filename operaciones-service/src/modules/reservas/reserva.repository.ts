@@ -59,7 +59,9 @@ export class ReservaRepository {
     precioSeguro: number;
     totalAmount:  number;
     codigoReserva: string;
-    notas?:       string;
+    notas?:        string;
+    clienteNombre?: string;
+    clienteEmail?:  string;
     extras?: Array<{ extraId: string; cantidad: number; precioDia: number; subtotal: number }>;
   }) {
     const { extras, fechaInicio, fechaFin, ...rest } = data;

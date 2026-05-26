@@ -120,7 +120,9 @@ export class ReservaController {
       const withUser = enriched.map((r: any) => ({
         ...r,
         usuario: usuariosMap.get(r.usuarioId)
-          ?? (r.usuarioId ? { id: r.usuarioId, nombres: 'Cliente', apellidos: r.usuarioId.slice(0, 8), email: '' } : null),
+          ?? (r.clienteNombre
+            ? { id: r.usuarioId, nombres: r.clienteNombre, apellidos: '', email: r.clienteEmail ?? '' }
+            : r.usuarioId ? { id: r.usuarioId, nombres: 'Cliente', apellidos: r.usuarioId.slice(0, 8), email: '' } : null),
       }));
       res.json({ success: true, data: { ...result, data: withUser } });
     } catch (err) { next(err); }
@@ -195,6 +197,17 @@ export class ReservaController {
 
       // Fire-and-forget: marcar vehículo como RESERVADO
       invClient.updateVehiculoStatus(vehiculoId, 'RESERVADO').catch(() => {});
+
+      // Fire-and-forget: guardar nombre del cliente para futuras consultas del panel
+      const authHeader = req.headers.authorization ?? '';
+      fetchUsuario(usuarioId, authHeader).then(u => {
+        if (u) {
+          this.reservaRepository.update(reserva.id, {
+            clienteNombre: `${u.nombres} ${u.apellidos}`.trim(),
+            clienteEmail:  u.email,
+          }).catch(() => {});
+        }
+      }).catch(() => {});
 
       res.status(201).json({ success: true, data: reserva });
     } catch (err) { next(err); }
