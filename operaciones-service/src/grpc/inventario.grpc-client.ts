@@ -35,7 +35,7 @@ export class InventarioGrpcClient {
   async getVehiculo(id: string): Promise<{
     found: boolean; id: string; status: string;
     precio_dia: number; is_active: boolean; nombre: string;
-    imagen_url: string; agencia_id: string; categoria: string;
+    imagen_url: string; agencia_id: string; categoria: string; placa: string;
   }> {
     return call(this.stub, 'GetVehiculo', { id });
   }

@@ -18,7 +18,7 @@
       </template>
       <template #cell-vehiculo="{ row }">
         <div>
-          <p class="text-zinc-200 font-medium text-sm">{{ row.vehiculo?.modelo?.marca?.nombre }} {{ row.vehiculo?.modelo?.nombre }}</p>
+          <p class="text-zinc-200 font-medium text-sm">{{ row.vehiculo?.nombre ?? '—' }}</p>
           <p class="text-xs text-zinc-500 font-mono">{{ row.vehiculo?.placa }}</p>
         </div>
       </template>
@@ -30,8 +30,8 @@
       </template>
       <template #cell-fechas="{ row }">
         <div class="text-xs text-zinc-400">
-          <p>{{ row.fechaInicio }}</p>
-          <p>{{ row.fechaFin }}</p>
+          <p>{{ fmtDate(row.fechaInicio) }}</p>
+          <p>{{ fmtDate(row.fechaFin) }}</p>
         </div>
       </template>
       <template #cell-totalAmount="{ row }">
@@ -83,10 +83,11 @@
                     <Car class="w-5 h-5 text-orange-400" />
                   </div>
                   <div>
-                    <p class="font-bold text-white text-sm">
-                      {{ detail.vehiculo?.modelo?.marca?.nombre }} {{ detail.vehiculo?.modelo?.nombre }} {{ detail.vehiculo?.anio }}
+                    <p class="font-bold text-white text-sm">{{ detail.vehiculo?.nombre ?? '—' }}</p>
+                    <p class="text-xs text-zinc-500">
+                      {{ detail.vehiculo?.placa }}
+                      <template v-if="detail.vehiculo?.precio_dia"> · ${{ Number(detail.vehiculo?.precio_dia).toFixed(2) }}/día</template>
                     </p>
-                    <p class="text-xs text-zinc-500">{{ detail.vehiculo?.placa }} · {{ detail.vehiculo?.color }} · ${{ Number(detail.vehiculo?.precioDia).toFixed(2) }}/día</p>
                   </div>
                 </div>
               </section>
@@ -118,11 +119,11 @@
                 <div class="grid grid-cols-3 gap-2">
                   <div class="card-light p-3 text-center">
                     <p class="text-[10px] text-zinc-500 uppercase font-bold mb-1">Inicio</p>
-                    <p class="text-sm font-bold text-white">{{ detail.fechaInicio }}</p>
+                    <p class="text-sm font-bold text-white">{{ fmtDate(detail.fechaInicio) }}</p>
                   </div>
                   <div class="card-light p-3 text-center">
                     <p class="text-[10px] text-zinc-500 uppercase font-bold mb-1">Fin</p>
-                    <p class="text-sm font-bold text-white">{{ detail.fechaFin }}</p>
+                    <p class="text-sm font-bold text-white">{{ fmtDate(detail.fechaFin) }}</p>
                   </div>
                   <div class="card-light p-3 text-center">
                     <p class="text-[10px] text-zinc-500 uppercase font-bold mb-1">Días</p>
@@ -250,6 +251,11 @@ const columns = [
   { key: 'totalAmount',   label: 'Total'    },
   { key: 'status',        label: 'Estado'   },
 ];
+
+function fmtDate(d: string | null | undefined): string {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' });
+}
 
 const { data, isLoading } = useAdminReservas();
 const updateStatus = useAdminUpdateReservaStatus();

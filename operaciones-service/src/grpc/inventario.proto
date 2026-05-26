@@ -22,6 +22,7 @@ message VehiculoResponse {
   string imagen_url = 7;
   string agencia_id = 8;
   string categoria  = 9;
+  string placa      = 10;
 }
 
 message UpdateVehiculoStatusRequest {

@@ -13,15 +13,16 @@ message GetVehiculoRequest {
 }
 
 message VehiculoResponse {
-  bool found       = 1;
-  string id        = 2;
-  string status    = 3;
+  bool found        = 1;
+  string id         = 2;
+  string status     = 3;
   double precio_dia = 4;
-  bool is_active   = 5;
-  string nombre    = 6;
+  bool is_active    = 5;
+  string nombre     = 6;
   string imagen_url = 7;
   string agencia_id = 8;
   string categoria  = 9;
+  string placa      = 10;
 }
 
 message UpdateVehiculoStatusRequest {

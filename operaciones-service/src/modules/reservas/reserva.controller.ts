@@ -52,7 +52,14 @@ export class ReservaController {
         agenciaId:  req.query['agenciaId']  as string | undefined,
         status:     req.query['status']     as string | undefined,
       };
-      res.json({ success: true, data: await this.reservaRepository.findAll(page, limit, filters) });
+      const result   = await this.reservaRepository.findAll(page, limit, filters);
+      const enriched = await enrichReservas(result.data);
+      // Adjunta usuarioId como objeto mínimo para que el frontend pueda mostrarlo
+      const withUser = enriched.map(r => ({
+        ...r,
+        usuario: r.usuario ?? (r.usuarioId ? { id: r.usuarioId, nombres: 'Cliente', apellidos: r.usuarioId.slice(0, 8), email: '' } : null),
+      }));
+      res.json({ success: true, data: { ...result, data: withUser } });
     } catch (err) { next(err); }
   };
 

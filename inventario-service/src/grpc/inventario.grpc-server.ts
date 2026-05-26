@@ -48,6 +48,7 @@ export function createInventarioGrpcServer(
           imagen_url: vehiculo.imagenUrl  ?? '',
           agencia_id: vehiculo.agenciaId  ?? '',
           categoria:  vehiculo.categoria?.nombre ?? '',
+          placa:      vehiculo.placa      ?? '',
         });
       } catch (err: any) {
         callback({
