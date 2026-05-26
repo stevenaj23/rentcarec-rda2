@@ -179,6 +179,7 @@ export function createReservaBookingRouter(reservaRepo: ReservaRepository): Rout
         precioSeguro:  0,
         totalAmount:   precioBase,
         codigoReserva: generarCodigo(),
+        status:        'CONFIRMADA',
       });
 
       res.status(201).json({ success: true, data: toReservaBookingDto(reserva) });
@@ -208,8 +209,14 @@ export function createReservaBookingRouter(reservaRepo: ReservaRepository): Rout
       }
 
       const currentStatus = reserva.status as string;
-      const allowed = ALLOWED_TRANSITIONS[currentStatus] ?? [];
 
+      // Idempotente: si ya está en el estado deseado, retornar éxito sin error
+      if (currentStatus === nuevoStatus) {
+        res.json({ success: true, data: toReservaBookingDto(reserva) });
+        return;
+      }
+
+      const allowed = ALLOWED_TRANSITIONS[currentStatus] ?? [];
       if (!allowed.includes(nuevoStatus)) {
         res.status(422).json({
           success: false,
