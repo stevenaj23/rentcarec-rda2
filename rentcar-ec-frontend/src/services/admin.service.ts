@@ -47,6 +47,9 @@ export const adminService = {
   getTarifas:       () => apiClient.get<ApiSuccess<Tarifa[]>>('/tarifas'),
   getCanalesVenta:  () => apiClient.get<ApiSuccess<CanalVenta[]>>('/canales-venta'),
 
+  // Mantenimientos
+  getMantenimientos: (page = 1, limit = 50) => apiClient.get<ApiSuccess<any>>('/mantenimientos', { page, limit }),
+
   // Auditoría
   getHistorial:    (page = 1, limit = 50) => apiClient.get<ApiSuccess<any>>('/historial', { page, limit }),
   getKardex:       (page = 1, limit = 50) => apiClient.get<ApiSuccess<any>>('/kardex', { page, limit }),
