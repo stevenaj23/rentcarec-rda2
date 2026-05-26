@@ -8,6 +8,10 @@ on:
 
   workflow_dispatch:
 
+concurrency:
+  group: deploy-operaciones
+  cancel-in-progress: false
+
 env:
   IMAGE_NAME: rentcar-operaciones
   CONTAINER_APP: rentcar-operaciones
