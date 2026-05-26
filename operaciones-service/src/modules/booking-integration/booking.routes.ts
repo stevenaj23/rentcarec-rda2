@@ -120,7 +120,7 @@ export function createReservaBookingRouter(reservaRepo: ReservaRepository): Rout
   // POST /api/v1/stevenariel/reservas/booking
   router.post('/', async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { vehiculoId, clienteId, agenciaId: bodyAgenciaId, fechaInicio, fechaFin } = req.body;
+      const { vehiculoId, clienteId, agenciaId: bodyAgenciaId, fechaInicio, fechaFin, clienteNombre, clienteEmail } = req.body;
 
       // 1. Presence check
       if (!vehiculoId || !clienteId || !fechaInicio || !fechaFin) {
@@ -188,6 +188,8 @@ export function createReservaBookingRouter(reservaRepo: ReservaRepository): Rout
         totalAmount:   precioBase,
         codigoReserva: generarCodigo(),
         status:        'CONFIRMADA',
+        ...(clienteNombre && { clienteNombre: String(clienteNombre) }),
+        ...(clienteEmail  && { clienteEmail:  String(clienteEmail)  }),
       });
 
       // Fire-and-forget: marcar vehículo como RESERVADO
