@@ -303,6 +303,17 @@ export function useDeleteMantenimiento() {
   });
 }
 
+// Vehículos — cambio de estado rápido
+export function useUpdateVehiculoStatus() {
+  const qc = useQueryClient();
+  const { show } = useToast();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      adminPatch(`/vehiculos/${id}`, { status }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['vehiculos'] }); show('Estado del vehículo actualizado'); },
+  });
+}
+
 // Marcas
 export function useAdminMarcas() {
   return useQuery({ queryKey: ['admin-marcas'], queryFn: () => adminGet('/marcas') });

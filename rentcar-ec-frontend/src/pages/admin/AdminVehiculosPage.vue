@@ -1,5 +1,9 @@
 <template>
   <div>
+    <div v-if="statusError" class="mb-4 flex items-center gap-2 bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3">
+      <span class="flex-1">{{ statusError }}</span>
+      <button @click="statusError = null" class="text-red-400 hover:text-red-200 text-lg leading-none">&times;</button>
+    </div>
     <AdminTable
       title="Vehículos"
       :data="vehiculos"
@@ -21,9 +25,15 @@
       <template #cell-agencia="{ row }">{{ row.agencia?.nombre ?? '—' }}</template>
       <template #cell-precioDia="{ row }">${{ Number(row.precioDia).toFixed(2) }}</template>
       <template #cell-status="{ row }">
-        <span class="text-xs px-2 py-0.5 rounded-full font-medium" :class="STATUS_CLS[row.status as VehicleStatus] ?? 'bg-gray-100 text-gray-600'">
-          {{ row.status }}
-        </span>
+        <select
+          :value="row.status"
+          @change="handleStatusChange(row.id, ($event.target as HTMLSelectElement).value)"
+          @click.stop
+          class="text-xs px-2 py-0.5 rounded-full font-medium border-0 cursor-pointer focus:outline-none bg-transparent"
+          :class="STATUS_CLS[row.status as VehicleStatus] ?? 'bg-gray-100 text-gray-600'"
+        >
+          <option v-for="s in STATUSES" :key="s" :value="s">{{ STATUS_LABEL[s] }}</option>
+        </select>
       </template>
     </AdminTable>
 
@@ -140,6 +150,7 @@ import { computed, reactive, ref, onMounted } from 'vue';
 import AdminTable from '@/components/admin/AdminTable.vue';
 import AdminFormModal from '@/components/admin/AdminFormModal.vue';
 import { useVehiculos, useCreateVehiculo, useUpdateVehiculo, useDeleteVehiculo } from '@/composables/useVehiculos';
+import { useUpdateVehiculoStatus } from '@/composables/useAdmin';
 import { apiClient } from '@/lib/api-client';
 import { adminService } from '@/services/admin.service';
 import type { Vehiculo, VehicleStatus, Modelo, Categoria, TipoCombustible, TipoTransmision, Agencia, Marca } from '@/types/domain';
@@ -147,12 +158,22 @@ import * as V from '@/utils/validators';
 
 const inputCls = 'input-base';
 
+const STATUSES: VehicleStatus[] = ['DISPONIBLE', 'RESERVADO', 'EN_USO', 'MANTENIMIENTO', 'INACTIVO'];
+
+const STATUS_LABEL: Record<VehicleStatus, string> = {
+  DISPONIBLE:    'Disponible',
+  RESERVADO:     'Reservado',
+  EN_USO:        'En uso',
+  MANTENIMIENTO: 'Mantenimiento',
+  INACTIVO:      'Inactivo',
+};
+
 const STATUS_CLS: Record<VehicleStatus, string> = {
-  DISPONIBLE:   'bg-green-100 text-green-700',
-  RESERVADO:    'bg-yellow-100 text-yellow-700',
-  EN_USO:       'bg-blue-100 text-blue-700',
-  MANTENIMIENTO:'bg-orange-100 text-orange-700',
-  INACTIVO:     'bg-red-100 text-red-700',
+  DISPONIBLE:    'bg-emerald-500/20 text-emerald-400',
+  RESERVADO:     'bg-amber-500/20   text-amber-400',
+  EN_USO:        'bg-blue-500/20    text-blue-400',
+  MANTENIMIENTO: 'bg-orange-500/20  text-orange-400',
+  INACTIVO:      'bg-red-500/20     text-red-400',
 };
 
 const columns = [
@@ -165,9 +186,19 @@ const columns = [
 ];
 
 const { data, isLoading } = useVehiculos();
-const create = useCreateVehiculo();
-const update = useUpdateVehiculo();
-const del    = useDeleteVehiculo();
+const create       = useCreateVehiculo();
+const update       = useUpdateVehiculo();
+const del          = useDeleteVehiculo();
+const updateStatus = useUpdateVehiculoStatus();
+const statusError  = ref<string | null>(null);
+
+async function handleStatusChange(id: string, status: string) {
+  statusError.value = null;
+  try { await updateStatus.mutateAsync({ id, status }); }
+  catch (err: unknown) {
+    statusError.value = (err as { message?: string }).message ?? 'Error al actualizar estado';
+  }
+}
 
 const vehiculos = computed<Vehiculo[]>(() => {
   const d = data.value as { data?: { data?: Vehiculo[] } | Vehiculo[] } | undefined;
