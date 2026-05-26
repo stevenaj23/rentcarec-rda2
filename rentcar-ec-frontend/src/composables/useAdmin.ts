@@ -100,6 +100,14 @@ export function useAdminDashboard() {
 export function useAdminUsers() {
   return useQuery({ queryKey: ['admin-usuarios'], queryFn: () => adminGet('/usuarios') });
 }
+export function useCreateUser() {
+  const qc = useQueryClient();
+  const { show } = useToast();
+  return useMutation({
+    mutationFn: (body: unknown) => adminPost('/usuarios', body),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-usuarios'] }); show('Usuario creado'); },
+  });
+}
 export function useUpdateUser() {
   const qc = useQueryClient();
   const { show } = useToast();
