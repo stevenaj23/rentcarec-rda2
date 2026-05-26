@@ -92,7 +92,7 @@
         class="flex items-center justify-between px-5 py-3 border-t border-zinc-800"
       >
         <span class="text-xs text-zinc-500">
-          {{ (currentPage - 1) * pageSize + 1 }}–{{ Math.min(currentPage * pageSize, filtered.length) }}
+          {{ (currentPage - 1) * PAGE_SIZE + 1 }}–{{ Math.min(currentPage * PAGE_SIZE, filtered.length) }}
           de {{ filtered.length }}
         </span>
         <div class="flex items-center gap-1">
