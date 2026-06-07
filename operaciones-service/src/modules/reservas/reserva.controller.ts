@@ -269,29 +269,27 @@ export class ReservaController {
         extras: extrasData,
       });
 
-      // Marcar vehículo RESERVADO — si gRPC resuelve con success:false o lanza, cae a HTTP
-      const grpcReservar = await invClient.updateVehiculoStatus(vehiculoId, 'RESERVADO').catch(() => ({ success: false }));
-      if (!grpcReservar.success) {
-        const ok = await updateVehiculoStatusHttp(vehiculoId, 'RESERVADO');
-        if (!ok) logger.warn({ vehiculoId }, 'No se pudo actualizar status del vehículo a RESERVADO');
-      }
+      // Responder INMEDIATAMENTE — el update del vehículo va en background
+      // (evita el timeout de 10s del cliente móvil cuando gRPC tarda 5s en Azure)
+      res.status(201).json({ success: true, data: reserva });
 
-      // Notificar tiempo real: reserva creada + vehículo cambió a RESERVADO
-      emitBusEvent('RESERVA_CREADA', reserva.id, { status: 'CONFIRMADA', vehiculoId }).catch(() => {});
-      emitBusEvent('VEHICULO_ACTUALIZADO', vehiculoId, { status: 'RESERVADO' }).catch(() => {});
-
-      // Fire-and-forget: guardar nombre del cliente para futuras consultas del panel
-      const authHeader = req.headers.authorization ?? '';
-      fetchUsuario(usuarioId, authHeader).then(u => {
-        if (u) {
-          this.reservaRepository.update(reserva.id, {
+      // Background: marcar vehículo RESERVADO + emitir eventos + guardar nombre cliente
+      void (async () => {
+        const grpcReservar = await invClient.updateVehiculoStatus(vehiculoId, 'RESERVADO').catch(() => ({ success: false }));
+        if (!grpcReservar.success) {
+          const ok = await updateVehiculoStatusHttp(vehiculoId, 'RESERVADO');
+          if (!ok) logger.warn({ vehiculoId }, 'No se pudo actualizar status del vehículo a RESERVADO');
+        }
+        emitBusEvent('RESERVA_CREADA', reserva.id, { status: 'CONFIRMADA', vehiculoId }).catch(() => {});
+        emitBusEvent('VEHICULO_ACTUALIZADO', vehiculoId, { status: 'RESERVADO' }).catch(() => {});
+        const authHeader = req.headers.authorization ?? '';
+        fetchUsuario(usuarioId, authHeader).then(u => {
+          if (u) this.reservaRepository.update(reserva.id, {
             clienteNombre: `${u.nombres} ${u.apellidos}`.trim(),
             clienteEmail:  u.email,
           }).catch(() => {});
-        }
-      }).catch(() => {});
-
-      res.status(201).json({ success: true, data: reserva });
+        }).catch(() => {});
+      })();
     } catch (err) { next(err); }
   };
 
