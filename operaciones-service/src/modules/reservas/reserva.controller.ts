@@ -309,16 +309,18 @@ export class ReservaController {
 
         if (vehiculoStatus) {
           const vid = reserva.vehiculoId!;
-          const grpcUpd = await getInventarioClient().updateVehiculoStatus(vid, vehiculoStatus).catch(() => ({ success: false }));
-          if (!grpcUpd.success) await updateVehiculoStatusHttp(vid, vehiculoStatus);
-          emitBusEvent('VEHICULO_ACTUALIZADO', vid, { status: vehiculoStatus }).catch(() => {});
+          // Background para no bloquear la respuesta al admin
+          void (async () => {
+            const grpcUpd = await getInventarioClient().updateVehiculoStatus(vid, vehiculoStatus).catch(() => ({ success: false }));
+            if (!grpcUpd.success) await updateVehiculoStatusHttp(vid, vehiculoStatus);
+            emitBusEvent('VEHICULO_ACTUALIZADO', vid, { status: vehiculoStatus }).catch(() => {});
+          })();
         }
       }
 
-      // Notificar tiempo real: reserva actualizada
-      emitBusEvent('RESERVA_ACTUALIZADA', req.params['id'] as string, { status: nuevoStatus ?? updated.status }).catch(() => {});
-
       res.json({ success: true, data: updated });
+      // Notificar tiempo real: reserva actualizada (fire-and-forget post-respuesta)
+      emitBusEvent('RESERVA_ACTUALIZADA', req.params['id'] as string, { status: nuevoStatus ?? updated.status }).catch(() => {});
     } catch (err) { next(err); }
   };
 
@@ -330,14 +332,17 @@ export class ReservaController {
         throw new ValidationException(`No se puede cancelar una reserva en estado ${reserva.status}`);
       }
       const updated = await this.reservaRepository.update(req.params['id'] as string, { status: 'CANCELADA' });
+      res.json({ success: true, data: updated });
+      // Background: liberar vehículo + notificar (no bloquea la respuesta)
       if (reserva.vehiculoId) {
         const vid = reserva.vehiculoId;
-        const grpcCancel = await getInventarioClient().updateVehiculoStatus(vid, 'DISPONIBLE').catch(() => ({ success: false }));
-        if (!grpcCancel.success) await updateVehiculoStatusHttp(vid, 'DISPONIBLE');
-        emitBusEvent('VEHICULO_ACTUALIZADO', vid, { status: 'DISPONIBLE' }).catch(() => {});
+        void (async () => {
+          const grpcCancel = await getInventarioClient().updateVehiculoStatus(vid, 'DISPONIBLE').catch(() => ({ success: false }));
+          if (!grpcCancel.success) await updateVehiculoStatusHttp(vid, 'DISPONIBLE');
+          emitBusEvent('VEHICULO_ACTUALIZADO', vid, { status: 'DISPONIBLE' }).catch(() => {});
+        })();
       }
       emitBusEvent('RESERVA_CANCELADA', req.params['id'] as string, { status: 'CANCELADA' }).catch(() => {});
-      res.json({ success: true, data: updated });
     } catch (err) { next(err); }
   };
 

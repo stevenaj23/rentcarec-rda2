@@ -39,7 +39,7 @@ export function useRealtimeEvents() {
     es.onerror = () => {
       es?.close();
       es = null;
-      // Reconectar con backoff exponencial (máx 30s)
+      if (retryTimeout) clearTimeout(retryTimeout);
       retryTimeout = setTimeout(() => {
         retryDelay = Math.min(retryDelay * 1.5, 30_000);
         connect();

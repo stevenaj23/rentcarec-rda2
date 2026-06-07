@@ -45,7 +45,7 @@ api.interceptors.response.use(
         if (!token) throw error;
 
         const { data } = await axios.post(
-          `${API_BASE}/auth/refresh-token`,
+          `${api.defaults.baseURL}/auth/refresh-token`,
           {},
           { headers: { Authorization: `Bearer ${token}` } },
         );

@@ -36,7 +36,7 @@ export default function MisReservasScreen() {
       const { data } = await reservasApi.myList({ limit: 50 });
       setReservas(data.data ?? []);
     } catch {}
-    finally { setLoading(false); setRefreshing(false); }
+    finally { if (!quiet) setLoading(false); setRefreshing(false); }
   }, []);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
