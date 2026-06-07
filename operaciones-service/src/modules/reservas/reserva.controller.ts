@@ -54,6 +54,22 @@ async function fetchVehiculoHttp(vehiculoId: string): Promise<{ nombre: string; 
   }
 }
 
+async function updateVehiculoStatusHttp(vehiculoId: string, status: string): Promise<boolean> {
+  try {
+    const res = await fetch(
+      `${INVENTARIO_SERVICE_URL}/api/v1/stevenariel/vehiculos/booking/${vehiculoId}/status`,
+      {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ status }),
+      },
+    );
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 async function fetchExtraHttp(extraId: string): Promise<{ id: string; precio_dia: number; nombre: string } | null> {
   try {
     const res = await fetch(`${INVENTARIO_SERVICE_URL}/api/v1/stevenariel/extras/${extraId}`);
@@ -240,7 +256,11 @@ export class ReservaController {
         extras: extrasData,
       });
 
-      invClient.updateVehiculoStatus(vehiculoId, 'RESERVADO').catch(() => {});
+      // Marcar vehículo RESERVADO — intenta gRPC, cae a HTTP si falla
+      invClient.updateVehiculoStatus(vehiculoId, 'RESERVADO').catch(async () => {
+        const ok = await updateVehiculoStatusHttp(vehiculoId, 'RESERVADO');
+        if (!ok) logger.warn({ vehiculoId }, 'No se pudo actualizar status del vehículo a RESERVADO');
+      });
 
       // Fire-and-forget: guardar nombre del cliente para futuras consultas del panel
       const authHeader = req.headers.authorization ?? '';
@@ -272,7 +292,10 @@ export class ReservaController {
         else if (nuevoStatus === 'CANCELADA' || nuevoStatus === 'COMPLETADA') vehiculoStatus = 'DISPONIBLE';
 
         if (vehiculoStatus) {
-          getInventarioClient().updateVehiculoStatus(reserva.vehiculoId!, vehiculoStatus).catch(() => {});
+          const vid = reserva.vehiculoId!;
+          getInventarioClient().updateVehiculoStatus(vid, vehiculoStatus).catch(async () => {
+            await updateVehiculoStatusHttp(vid, vehiculoStatus!);
+          });
         }
       }
 
@@ -289,7 +312,10 @@ export class ReservaController {
       }
       const updated = await this.reservaRepository.update(req.params['id'] as string, { status: 'CANCELADA' });
       if (reserva.vehiculoId) {
-        getInventarioClient().updateVehiculoStatus(reserva.vehiculoId, 'DISPONIBLE').catch(() => {});
+        const vid = reserva.vehiculoId;
+        getInventarioClient().updateVehiculoStatus(vid, 'DISPONIBLE').catch(async () => {
+          await updateVehiculoStatusHttp(vid, 'DISPONIBLE');
+        });
       }
       res.json({ success: true, data: updated });
     } catch (err) { next(err); }
