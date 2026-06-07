@@ -8,6 +8,19 @@ import { logger }              from '../../shared/logger.js';
 
 const AUTH_SERVICE_URL      = process.env['AUTH_SERVICE_URL']      ?? 'http://auth-service';
 const INVENTARIO_SERVICE_URL = process.env['INVENTARIO_SERVICE_URL'] ?? 'http://localhost:3002';
+const BUS_SERVICE_URL        = process.env['BUS_SERVICE_URL']        ?? 'http://bus-service:3007';
+
+async function emitBusEvent(tipo: string, entidadId: string, payload: Record<string, unknown>): Promise<void> {
+  try {
+    await fetch(`${BUS_SERVICE_URL}/api/v1/stevenariel/bus/stream/emit`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ tipo, entidadId, payload }),
+    });
+  } catch (err: any) {
+    logger.warn({ tipo, entidadId, err: err?.message }, 'emitBusEvent fallido');
+  }
+}
 
 async function fetchUsuario(usuarioId: string, token: string): Promise<{ id: string; nombres: string; apellidos: string; email: string } | null> {
   try {
@@ -262,6 +275,10 @@ export class ReservaController {
         if (!ok) logger.warn({ vehiculoId }, 'No se pudo actualizar status del vehículo a RESERVADO');
       });
 
+      // Notificar tiempo real: reserva creada + vehículo cambió a RESERVADO
+      emitBusEvent('RESERVA_CREADA', reserva.id, { status: 'CONFIRMADA', vehiculoId }).catch(() => {});
+      emitBusEvent('VEHICULO_ACTUALIZADO', vehiculoId, { status: 'RESERVADO' }).catch(() => {});
+
       // Fire-and-forget: guardar nombre del cliente para futuras consultas del panel
       const authHeader = req.headers.authorization ?? '';
       fetchUsuario(usuarioId, authHeader).then(u => {
@@ -296,8 +313,13 @@ export class ReservaController {
           getInventarioClient().updateVehiculoStatus(vid, vehiculoStatus).catch(async () => {
             await updateVehiculoStatusHttp(vid, vehiculoStatus!);
           });
+          // Notificar tiempo real: vehículo cambió de estado
+          emitBusEvent('VEHICULO_ACTUALIZADO', vid, { status: vehiculoStatus }).catch(() => {});
         }
       }
+
+      // Notificar tiempo real: reserva actualizada
+      emitBusEvent('RESERVA_ACTUALIZADA', req.params['id'] as string, { status: nuevoStatus ?? updated.status }).catch(() => {});
 
       res.json({ success: true, data: updated });
     } catch (err) { next(err); }
@@ -316,7 +338,9 @@ export class ReservaController {
         getInventarioClient().updateVehiculoStatus(vid, 'DISPONIBLE').catch(async () => {
           await updateVehiculoStatusHttp(vid, 'DISPONIBLE');
         });
+        emitBusEvent('VEHICULO_ACTUALIZADO', vid, { status: 'DISPONIBLE' }).catch(() => {});
       }
+      emitBusEvent('RESERVA_CANCELADA', req.params['id'] as string, { status: 'CANCELADA' }).catch(() => {});
       res.json({ success: true, data: updated });
     } catch (err) { next(err); }
   };

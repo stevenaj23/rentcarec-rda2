@@ -68,6 +68,10 @@
 import { Car, Building2, Building, BookOpen, Users, LayoutDashboard, LogOut, Key, CreditCard, FileText, RotateCcw, History, Activity, Wrench, Layers } from 'lucide-vue-next';
 import { useAuthStore } from '@/stores/auth';
 import { useRouter, useRoute } from 'vue-router';
+import { useRealtimeEvents } from '@/composables/useRealtimeEvents';
+
+// Conexión SSE activa durante toda la sesión de admin → actualizaciones en tiempo real
+useRealtimeEvents();
 
 const auth = useAuthStore();
 const router = useRouter();
