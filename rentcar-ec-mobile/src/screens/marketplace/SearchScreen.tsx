@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, TextInput, FlatList,
   StyleSheet, ActivityIndicator, TouchableOpacity, RefreshControl,
@@ -27,12 +27,24 @@ export default function SearchScreen() {
     return Math.max(0, Math.ceil(diff / 86400000));
   })();
 
+  // Sequence number: solo aplica la respuesta de la llamada más reciente
+  // para evitar que una respuesta lenta obsoleta sobreescriba datos frescos
+  const loadSeq = useRef(0);
+
   const load = useCallback((quiet = false) => {
     if (!quiet) setLoading(true);
+    const seq = ++loadSeq.current;
     vehiculosApi.list({ limit: 50, status: 'DISPONIBLE' })
-      .then(({ data }) => setVehiculos(data.data.data ?? []))
-      .catch(() => { if (!quiet) setLoading(false); })
+      .then(({ data }) => {
+        if (seq !== loadSeq.current) return; // respuesta obsoleta, ignorar
+        setVehiculos(data.data.data ?? []);
+      })
+      .catch(() => {
+        if (seq !== loadSeq.current) return;
+        if (!quiet) setLoading(false);
+      })
       .finally(() => {
+        if (seq !== loadSeq.current) return;
         if (!quiet) setLoading(false);
         setRefreshing(false);
       });
