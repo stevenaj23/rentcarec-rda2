@@ -311,8 +311,12 @@ export class ReservaController {
           const vid = reserva.vehiculoId!;
           // Background para no bloquear la respuesta al admin
           void (async () => {
-            const grpcUpd = await getInventarioClient().updateVehiculoStatus(vid, vehiculoStatus).catch(() => ({ success: false }));
-            if (!grpcUpd.success) await updateVehiculoStatusHttp(vid, vehiculoStatus);
+            // HTTP primero: más rápido en Azure (sin esperar timeout gRPC de 5s)
+            const httpOk = await updateVehiculoStatusHttp(vid, vehiculoStatus);
+            if (!httpOk) {
+              const grpcUpd = await getInventarioClient().updateVehiculoStatus(vid, vehiculoStatus).catch(() => ({ success: false }));
+              if (!grpcUpd.success) logger.warn({ vid, vehiculoStatus }, 'No se pudo actualizar status del vehículo');
+            }
             emitBusEvent('VEHICULO_ACTUALIZADO', vid, { status: vehiculoStatus }).catch(() => {});
           })();
         }

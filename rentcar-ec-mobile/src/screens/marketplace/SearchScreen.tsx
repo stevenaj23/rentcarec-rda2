@@ -9,6 +9,7 @@ import { Colors } from '../../constants/colors';
 import { vehiculosApi, Vehiculo } from '../../api/vehiculos.api';
 import VehiculoCard from '../../components/VehiculoCard';
 import { RootStackParams } from '../../navigation/AppNavigator';
+import { useBusEvents } from '../../hooks/useBusEvents';
 
 type Nav = StackNavigationProp<RootStackParams>;
 
@@ -46,11 +47,15 @@ export default function SearchScreen() {
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [load]));
 
-  // Polling cada 5s para reflejar cambios en tiempo real
+  // Polling cada 5s como red de seguridad
   useEffect(() => {
     const interval = setInterval(() => load(true), 5_000);
     return () => clearInterval(interval);
   }, [load]);
+
+  // SSE: recarga inmediata cuando el backend emite VEHICULO_ACTUALIZADO
+  // (funciona para cancelaciones desde el admin panel sin acción del usuario)
+  useBusEvents(() => load(true));
 
   const Header = (
     <>
