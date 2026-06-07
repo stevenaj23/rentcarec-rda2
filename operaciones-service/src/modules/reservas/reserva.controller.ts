@@ -172,21 +172,26 @@ export class ReservaController {
         return;
       }
 
-      const invClient    = getInventarioClient();
-      const vehiculoGrpc = await invClient.getVehiculo(vehiculoId);
+      const invClient = getInventarioClient();
 
+      // Obtener vehículo: intenta gRPC primero, cae a HTTP si falla
       let vehiculoPrecioDia: number;
       let vehiculoStatus:    string;
 
-      if (vehiculoGrpc.found) {
-        vehiculoPrecioDia = vehiculoGrpc.precio_dia;
-        vehiculoStatus    = vehiculoGrpc.status;
-      } else {
+      try {
+        const vGrpc = await invClient.getVehiculo(vehiculoId);
+        if (vGrpc.found) {
+          vehiculoPrecioDia = vGrpc.precio_dia;
+          vehiculoStatus    = vGrpc.status;
+        } else {
+          throw new Error('not_found');
+        }
+      } catch {
         logger.warn({ vehiculoId }, 'gRPC getVehiculo falló — usando fallback HTTP');
-        const vehiculoHttp = await fetchVehiculoHttp(vehiculoId);
-        if (!vehiculoHttp) throw new NotFoundException('Vehiculo', vehiculoId);
-        vehiculoPrecioDia = vehiculoHttp.precio_dia;
-        vehiculoStatus    = vehiculoHttp.status;
+        const vHttp = await fetchVehiculoHttp(vehiculoId);
+        if (!vHttp) throw new NotFoundException('Vehiculo', vehiculoId);
+        vehiculoPrecioDia = vHttp.precio_dia;
+        vehiculoStatus    = vHttp.status;
       }
 
       if (vehiculoStatus !== 'DISPONIBLE') throw new ValidationException('El vehículo no está disponible');
@@ -204,15 +209,19 @@ export class ReservaController {
       const extrasData: any[] = [];
       if (extras?.length) {
         for (const e of extras) {
-          const extraGrpc = await invClient.getExtra(e.extraId);
           let precioDiaExtra: number;
-          if (extraGrpc.found) {
-            precioDiaExtra = extraGrpc.precio_dia;
-          } else {
+          try {
+            const eGrpc = await invClient.getExtra(e.extraId);
+            if (eGrpc.found) {
+              precioDiaExtra = eGrpc.precio_dia;
+            } else {
+              throw new Error('not_found');
+            }
+          } catch {
             logger.warn({ extraId: e.extraId }, 'gRPC getExtra falló — usando fallback HTTP');
-            const extraHttp = await fetchExtraHttp(e.extraId);
-            if (!extraHttp) throw new NotFoundException('Extra', e.extraId);
-            precioDiaExtra = extraHttp.precio_dia;
+            const eHttp = await fetchExtraHttp(e.extraId);
+            if (!eHttp) throw new NotFoundException('Extra', e.extraId);
+            precioDiaExtra = eHttp.precio_dia;
           }
           const subtotal = precioDiaExtra * e.cantidad * dias;
           precioExtras += subtotal;
