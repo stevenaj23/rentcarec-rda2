@@ -33,11 +33,11 @@ export default function SearchScreen() {
       .finally(() => { if (!quiet) setLoading(false); });
   }, []);
 
-  // Al enfocar: recarga inmediata + recarga a los 7s para capturar el
-  // update de vehículo que ocurre ~5s después de crear una reserva
+  // Al enfocar: recarga inmediata + recarga a los 10s para capturar el
+  // update de vehículo que ocurre en background (~1-7s según red en Azure)
   useFocusEffect(useCallback(() => {
     load();
-    const delayed = setTimeout(() => load(true), 7_000);
+    const delayed = setTimeout(() => load(true), 10_000);
     return () => clearTimeout(delayed);
   }, [load]));
 
