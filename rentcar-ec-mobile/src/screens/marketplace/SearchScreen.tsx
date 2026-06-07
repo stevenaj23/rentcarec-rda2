@@ -27,16 +27,21 @@ export default function SearchScreen() {
 
   const load = useCallback((quiet = false) => {
     if (!quiet) setLoading(true);
-    vehiculosApi.list({ limit: 50 })
+    vehiculosApi.list({ limit: 50, status: 'DISPONIBLE' })
       .then(({ data }) => setVehiculos(data.data.data))
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => { if (!quiet) setLoading(false); });
   }, []);
 
-  // Recarga al enfocar la pantalla (ej: volver de una reserva)
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  // Al enfocar: recarga inmediata + recarga a los 7s para capturar el
+  // update de vehículo que ocurre ~5s después de crear una reserva
+  useFocusEffect(useCallback(() => {
+    load();
+    const delayed = setTimeout(() => load(true), 7_000);
+    return () => clearTimeout(delayed);
+  }, [load]));
 
-  // Polling cada 12s para reflejar vehículos que cambian a RESERVADO en tiempo real
+  // Polling cada 12s para reflejar cambios en tiempo real
   useEffect(() => {
     const interval = setInterval(() => load(true), 12_000);
     return () => clearInterval(interval);
