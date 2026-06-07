@@ -19,10 +19,9 @@ export function useRealtimeEvents() {
   let retryDelay = 2000;
 
   function connect() {
-    // La URL base del API ya tiene /api/v1 — necesitamos el origen
-    const apiUrl = import.meta.env.VITE_API_URL as string ?? 'http://localhost:3000/api/v1';
-    const origin = apiUrl.replace(/\/api\/v1.*$/, '');
-    const streamUrl = `${origin}/api/v1/bus/stream`;
+    // VITE_API_URL = '/api/v1/stevenariel' → SSE en /api/v1/stevenariel/bus/stream
+    const apiBase = (import.meta.env.VITE_API_URL as string ?? '/api/v1/stevenariel').replace(/\/$/, '');
+    const streamUrl = `${apiBase}/bus/stream`;
 
     es = new EventSource(streamUrl);
 

@@ -269,11 +269,12 @@ export class ReservaController {
         extras: extrasData,
       });
 
-      // Marcar vehículo RESERVADO — intenta gRPC, cae a HTTP si falla
-      invClient.updateVehiculoStatus(vehiculoId, 'RESERVADO').catch(async () => {
+      // Marcar vehículo RESERVADO — si gRPC resuelve con success:false o lanza, cae a HTTP
+      const grpcReservar = await invClient.updateVehiculoStatus(vehiculoId, 'RESERVADO').catch(() => ({ success: false }));
+      if (!grpcReservar.success) {
         const ok = await updateVehiculoStatusHttp(vehiculoId, 'RESERVADO');
         if (!ok) logger.warn({ vehiculoId }, 'No se pudo actualizar status del vehículo a RESERVADO');
-      });
+      }
 
       // Notificar tiempo real: reserva creada + vehículo cambió a RESERVADO
       emitBusEvent('RESERVA_CREADA', reserva.id, { status: 'CONFIRMADA', vehiculoId }).catch(() => {});
@@ -310,10 +311,8 @@ export class ReservaController {
 
         if (vehiculoStatus) {
           const vid = reserva.vehiculoId!;
-          getInventarioClient().updateVehiculoStatus(vid, vehiculoStatus).catch(async () => {
-            await updateVehiculoStatusHttp(vid, vehiculoStatus!);
-          });
-          // Notificar tiempo real: vehículo cambió de estado
+          const grpcUpd = await getInventarioClient().updateVehiculoStatus(vid, vehiculoStatus).catch(() => ({ success: false }));
+          if (!grpcUpd.success) await updateVehiculoStatusHttp(vid, vehiculoStatus);
           emitBusEvent('VEHICULO_ACTUALIZADO', vid, { status: vehiculoStatus }).catch(() => {});
         }
       }
@@ -335,9 +334,8 @@ export class ReservaController {
       const updated = await this.reservaRepository.update(req.params['id'] as string, { status: 'CANCELADA' });
       if (reserva.vehiculoId) {
         const vid = reserva.vehiculoId;
-        getInventarioClient().updateVehiculoStatus(vid, 'DISPONIBLE').catch(async () => {
-          await updateVehiculoStatusHttp(vid, 'DISPONIBLE');
-        });
+        const grpcCancel = await getInventarioClient().updateVehiculoStatus(vid, 'DISPONIBLE').catch(() => ({ success: false }));
+        if (!grpcCancel.success) await updateVehiculoStatusHttp(vid, 'DISPONIBLE');
         emitBusEvent('VEHICULO_ACTUALIZADO', vid, { status: 'DISPONIBLE' }).catch(() => {});
       }
       emitBusEvent('RESERVA_CANCELADA', req.params['id'] as string, { status: 'CANCELADA' }).catch(() => {});
