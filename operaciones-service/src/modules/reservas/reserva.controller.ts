@@ -275,10 +275,11 @@ export class ReservaController {
 
       // Background: marcar vehículo RESERVADO + emitir eventos + guardar nombre cliente
       void (async () => {
-        const grpcReservar = await invClient.updateVehiculoStatus(vehiculoId, 'RESERVADO').catch(() => ({ success: false }));
-        if (!grpcReservar.success) {
-          const ok = await updateVehiculoStatusHttp(vehiculoId, 'RESERVADO');
-          if (!ok) logger.warn({ vehiculoId }, 'No se pudo actualizar status del vehículo a RESERVADO');
+        // HTTP primero: evita esperar timeout gRPC de 5s en Azure
+        const httpOk = await updateVehiculoStatusHttp(vehiculoId, 'RESERVADO');
+        if (!httpOk) {
+          const grpcReservar = await invClient.updateVehiculoStatus(vehiculoId, 'RESERVADO').catch(() => ({ success: false }));
+          if (!grpcReservar.success) logger.warn({ vehiculoId }, 'No se pudo actualizar status del vehículo a RESERVADO');
         }
         emitBusEvent('RESERVA_CREADA', reserva.id, { status: 'CONFIRMADA', vehiculoId }).catch(() => {});
         emitBusEvent('VEHICULO_ACTUALIZADO', vehiculoId, { status: 'RESERVADO' }).catch(() => {});

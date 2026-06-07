@@ -295,12 +295,14 @@ const reservas = computed<ReservaRow[]>(() => {
 });
 
 const reservasFiltradas = computed(() => {
-  return reservas.value.filter(r => {
-    if (filterStatus.value && r.status !== filterStatus.value) return false;
-    if (filterDesde.value && r.fechaInicio < filterDesde.value) return false;
-    if (filterHasta.value && r.fechaFin   > filterHasta.value) return false;
-    return true;
-  });
+  return reservas.value
+    .filter(r => {
+      if (filterStatus.value && r.status !== filterStatus.value) return false;
+      if (filterDesde.value && r.fechaInicio < filterDesde.value) return false;
+      if (filterHasta.value && r.fechaFin   > filterHasta.value) return false;
+      return true;
+    })
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 });
 
 function openDetail(row: ReservaRow) { detail.value = row; }
