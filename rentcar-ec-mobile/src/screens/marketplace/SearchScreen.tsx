@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, TextInput, FlatList,
-  StyleSheet, ActivityIndicator, TouchableOpacity,
+  StyleSheet, ActivityIndicator, TouchableOpacity, RefreshControl,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -16,6 +16,7 @@ export default function SearchScreen() {
   const nav = useNavigation<Nav>();
   const [vehiculos,   setVehiculos]   = useState<Vehiculo[]>([]);
   const [loading,     setLoading]     = useState(true);
+  const [refreshing,  setRefreshing]  = useState(false);
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin,    setFechaFin]    = useState('');
 
@@ -28,9 +29,12 @@ export default function SearchScreen() {
   const load = useCallback((quiet = false) => {
     if (!quiet) setLoading(true);
     vehiculosApi.list({ limit: 50, status: 'DISPONIBLE' })
-      .then(({ data }) => setVehiculos(data.data.data))
-      .catch(() => {})
-      .finally(() => { if (!quiet) setLoading(false); });
+      .then(({ data }) => setVehiculos(data.data.data ?? []))
+      .catch(() => { if (!quiet) setLoading(false); })
+      .finally(() => {
+        if (!quiet) setLoading(false);
+        setRefreshing(false);
+      });
   }, []);
 
   // Al enfocar: recarga inmediata + checkpoints a 2s y 6s para capturar
@@ -111,6 +115,14 @@ export default function SearchScreen() {
         data={vehiculos}
         keyExtractor={v => v.id}
         ListHeaderComponent={Header}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => { setRefreshing(true); load(); }}
+            tintColor={Colors.primary}
+            colors={[Colors.primary]}
+          />
+        }
         renderItem={({ item }) => (
           <VehiculoCard
             vehiculo={item}
