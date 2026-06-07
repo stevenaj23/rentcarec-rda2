@@ -36,7 +36,7 @@ function calcularDias(inicio: string, fin: string): number {
   return Math.ceil(ms / (1000 * 60 * 60 * 24));
 }
 
-async function fetchVehiculoHttp(vehiculoId: string): Promise<{ nombre: string; placa: string; precio_dia: number } | null> {
+async function fetchVehiculoHttp(vehiculoId: string): Promise<{ nombre: string; placa: string; precio_dia: number; status: string } | null> {
   try {
     const res = await fetch(`${INVENTARIO_SERVICE_URL}/api/v1/stevenariel/vehiculos/${vehiculoId}`);
     if (!res.ok) return null;
@@ -48,7 +48,20 @@ async function fetchVehiculoHttp(vehiculoId: string): Promise<{ nombre: string; 
       v.modelo?.nombre       ?? '',
       v.anio,
     ].filter(Boolean).join(' ').trim() || v.placa || `Vehículo #${vehiculoId.slice(0, 8)}`;
-    return { nombre, placa: v.placa ?? '', precio_dia: Number(v.precioDia ?? v.precio_dia ?? 0) };
+    return { nombre, placa: v.placa ?? '', precio_dia: Number(v.precioDia ?? v.precio_dia ?? 0), status: v.status ?? 'DISPONIBLE' };
+  } catch {
+    return null;
+  }
+}
+
+async function fetchExtraHttp(extraId: string): Promise<{ id: string; precio_dia: number; nombre: string } | null> {
+  try {
+    const res = await fetch(`${INVENTARIO_SERVICE_URL}/api/v1/stevenariel/extras/${extraId}`);
+    if (!res.ok) return null;
+    const json = await res.json() as any;
+    const e = json?.data;
+    if (!e) return null;
+    return { id: extraId, precio_dia: Number(e.precioDia ?? e.precio_dia ?? 0), nombre: e.nombre ?? '' };
   } catch {
     return null;
   }
@@ -159,16 +172,27 @@ export class ReservaController {
         return;
       }
 
-      // Obtener vehículo via HTTP (funciona en Azure Container Apps sin gRPC)
-      const vehiculoHttpRes = await fetch(`${INVENTARIO_SERVICE_URL}/api/v1/stevenariel/vehiculos/${vehiculoId}`);
-      if (!vehiculoHttpRes.ok) throw new NotFoundException('Vehiculo', vehiculoId);
-      const vehiculoJson = await vehiculoHttpRes.json() as any;
-      const vehiculoData = vehiculoJson?.data;
-      if (!vehiculoData) throw new NotFoundException('Vehiculo', vehiculoId);
-      if (vehiculoData.status !== 'DISPONIBLE') throw new ValidationException('El vehículo no está disponible');
+      const invClient    = getInventarioClient();
+      const vehiculoGrpc = await invClient.getVehiculo(vehiculoId);
+
+      let vehiculoPrecioDia: number;
+      let vehiculoStatus:    string;
+
+      if (vehiculoGrpc.found) {
+        vehiculoPrecioDia = vehiculoGrpc.precio_dia;
+        vehiculoStatus    = vehiculoGrpc.status;
+      } else {
+        logger.warn({ vehiculoId }, 'gRPC getVehiculo falló — usando fallback HTTP');
+        const vehiculoHttp = await fetchVehiculoHttp(vehiculoId);
+        if (!vehiculoHttp) throw new NotFoundException('Vehiculo', vehiculoId);
+        vehiculoPrecioDia = vehiculoHttp.precio_dia;
+        vehiculoStatus    = vehiculoHttp.status;
+      }
+
+      if (vehiculoStatus !== 'DISPONIBLE') throw new ValidationException('El vehículo no está disponible');
 
       const dias       = calcularDias(fechaInicio, fechaFin);
-      const precioBase = Number(vehiculoData.precioDia ?? vehiculoData.precio_dia ?? 0) * dias;
+      const precioBase = vehiculoPrecioDia * dias;
 
       let precioSeguro = 0;
       if (seguroId) {
@@ -180,12 +204,16 @@ export class ReservaController {
       const extrasData: any[] = [];
       if (extras?.length) {
         for (const e of extras) {
-          const extraHttpRes = await fetch(`${INVENTARIO_SERVICE_URL}/api/v1/stevenariel/extras/${e.extraId}`);
-          if (!extraHttpRes.ok) throw new NotFoundException('Extra', e.extraId);
-          const extraJson = await extraHttpRes.json() as any;
-          const extraData = extraJson?.data;
-          if (!extraData) throw new NotFoundException('Extra', e.extraId);
-          const precioDiaExtra = Number(extraData.precioDia ?? extraData.precio_dia ?? 0);
+          const extraGrpc = await invClient.getExtra(e.extraId);
+          let precioDiaExtra: number;
+          if (extraGrpc.found) {
+            precioDiaExtra = extraGrpc.precio_dia;
+          } else {
+            logger.warn({ extraId: e.extraId }, 'gRPC getExtra falló — usando fallback HTTP');
+            const extraHttp = await fetchExtraHttp(e.extraId);
+            if (!extraHttp) throw new NotFoundException('Extra', e.extraId);
+            precioDiaExtra = extraHttp.precio_dia;
+          }
           const subtotal = precioDiaExtra * e.cantidad * dias;
           precioExtras += subtotal;
           extrasData.push({ extraId: e.extraId, cantidad: e.cantidad, precioDia: precioDiaExtra, subtotal });
@@ -203,12 +231,7 @@ export class ReservaController {
         extras: extrasData,
       });
 
-      // Fire-and-forget: marcar vehículo como RESERVADO
-      fetch(`${INVENTARIO_SERVICE_URL}/api/v1/stevenariel/vehiculos/booking/${vehiculoId}/status`, {
-        method:  'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ status: 'RESERVADO' }),
-      }).catch(() => {});
+      invClient.updateVehiculoStatus(vehiculoId, 'RESERVADO').catch(() => {});
 
       // Fire-and-forget: guardar nombre del cliente para futuras consultas del panel
       const authHeader = req.headers.authorization ?? '';
@@ -240,11 +263,7 @@ export class ReservaController {
         else if (nuevoStatus === 'CANCELADA' || nuevoStatus === 'COMPLETADA') vehiculoStatus = 'DISPONIBLE';
 
         if (vehiculoStatus) {
-          fetch(`${INVENTARIO_SERVICE_URL}/api/v1/stevenariel/vehiculos/booking/${reserva.vehiculoId}/status`, {
-            method:  'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ status: vehiculoStatus }),
-          }).catch(() => {});
+          getInventarioClient().updateVehiculoStatus(reserva.vehiculoId!, vehiculoStatus).catch(() => {});
         }
       }
 
@@ -261,11 +280,7 @@ export class ReservaController {
       }
       const updated = await this.reservaRepository.update(req.params['id'] as string, { status: 'CANCELADA' });
       if (reserva.vehiculoId) {
-        fetch(`${INVENTARIO_SERVICE_URL}/api/v1/stevenariel/vehiculos/booking/${reserva.vehiculoId}/status`, {
-          method:  'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ status: 'DISPONIBLE' }),
-        }).catch(() => {});
+        getInventarioClient().updateVehiculoStatus(reserva.vehiculoId, 'DISPONIBLE').catch(() => {});
       }
       res.json({ success: true, data: updated });
     } catch (err) { next(err); }
