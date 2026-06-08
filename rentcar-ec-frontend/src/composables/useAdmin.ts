@@ -193,7 +193,7 @@ export function useDeleteEmpresa() {
 
 // Reservas admin
 export function useAdminReservas() {
-  return useQuery({ queryKey: ['admin-reservas'], queryFn: () => adminGet('/reservas') });
+  return useQuery({ queryKey: ['admin-reservas'], queryFn: () => adminGet('/reservas?limit=200') });
 }
 export function useAdminUpdateReservaStatus() {
   const qc = useQueryClient();
