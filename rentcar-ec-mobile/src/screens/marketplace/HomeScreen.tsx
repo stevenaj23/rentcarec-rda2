@@ -30,6 +30,7 @@ export default function HomeScreen() {
   const [loading,      setLoading]      = useState(true);
   const [refreshing,   setRefreshing]   = useState(false);
   const [selectedCat,  setSelectedCat]  = useState('Todos');
+  const [loadError,    setLoadError]    = useState(false);
 
   const loadSeq    = useRef(0);
   const sseVersion = useVehiculoVersion();
@@ -41,9 +42,11 @@ export default function HomeScreen() {
       .then(({ data }) => {
         if (seq !== loadSeq.current) return;
         setVehiculos(data.data.data ?? []);
+        setLoadError(false);
       })
       .catch(() => {
         if (seq !== loadSeq.current) return;
+        setLoadError(true);
       })
       .finally(() => {
         if (seq !== loadSeq.current) return;
@@ -153,7 +156,19 @@ export default function HomeScreen() {
         />
       )}
       ListEmptyComponent={
-        !loading ? <Text style={styles.empty}>No hay vehículos en esta categoría</Text> : null
+        !loading ? (
+          <View style={styles.emptyBox}>
+            <Ionicons
+              name={loadError ? 'cloud-offline-outline' : 'car-outline'}
+              size={48} color={Colors.border} style={{ marginBottom: 12 }}
+            />
+            <Text style={styles.empty}>
+              {loadError
+                ? 'No se pudo cargar.\nDesliza hacia abajo para reintentar.'
+                : 'No hay vehículos disponibles\nen esta categoría.'}
+            </Text>
+          </View>
+        ) : null
       }
       refreshControl={
         <RefreshControl
@@ -199,5 +214,6 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 17, fontWeight: '700', color: Colors.text },
   sectionCount: { fontSize: 12, color: Colors.muted },
 
-  empty: { color: Colors.muted, textAlign: 'center', marginTop: 40, fontSize: 15 },
+  emptyBox: { alignItems: 'center', marginTop: 40, paddingHorizontal: 32 },
+  empty:    { color: Colors.muted, textAlign: 'center', fontSize: 15, lineHeight: 22 },
 });

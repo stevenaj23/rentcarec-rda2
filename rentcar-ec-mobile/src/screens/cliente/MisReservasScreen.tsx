@@ -70,7 +70,7 @@ export default function MisReservasScreen() {
         </View>
       }
       renderItem={({ item: r }) => {
-        const vehiculoNombre = r.vehiculo?.nombre ?? r.clienteNombre ?? `Vehículo #${r.vehiculoId.slice(0, 8)}`;
+        const vehiculoNombre = r.vehiculo?.nombre ?? `Vehículo #${r.vehiculoId.slice(0, 8)}`;
         const placa = r.vehiculo?.placa;
         return (
           <TouchableOpacity
