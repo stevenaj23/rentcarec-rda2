@@ -60,4 +60,4 @@ jobs:
               ORG_GRPC_HOST=rentcar-org:5003 \
               FINANCIERO_GRPC_HOST=rentcar-financiero:5005 \
               AUTH_SERVICE_URL=http://rentcar-auth \
-              BUS_SERVICE_URL=https://rentcar-bus.internal.whiteisland-027d7f3d.canadacentral.azurecontainerapps.io
+              BUS_SERVICE_URL=http://rentcar-bus
