@@ -3,6 +3,7 @@ import {
   View, Text, TextInput, ScrollView, StyleSheet,
   TouchableOpacity, Alert,
 } from 'react-native';
+import { showToast } from '../../components/Toast';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/colors';
 import { useAuth } from '../../context/AuthContext';
@@ -22,9 +23,9 @@ export default function ProfileScreen() {
     try {
       const { data } = await authApi.updateMe({ nombres, apellidos, telefono: telefono || undefined });
       setUser(data.data);
-      Alert.alert('Guardado', 'Tu perfil ha sido actualizado.');
+      showToast({ type: 'success', title: 'Perfil actualizado' });
     } catch (err: any) {
-      Alert.alert('Error', err?.response?.data?.error?.message ?? 'No se pudo actualizar');
+      showToast({ type: 'error', title: 'No se pudo actualizar', message: err?.response?.data?.error?.message });
     } finally { setSaving(false); }
   };
 

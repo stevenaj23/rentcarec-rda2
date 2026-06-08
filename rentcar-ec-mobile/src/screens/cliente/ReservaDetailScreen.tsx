@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, StyleSheet,
   TouchableOpacity, ActivityIndicator, Alert, Modal, TextInput,
 } from 'react-native';
+import { showToast } from '../../components/Toast';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -75,7 +76,7 @@ export default function ReservaDetailScreen() {
             await reservasApi.cancel(params.reservaId);
             (navigation as any).navigate('Main', { screen: 'SearchTab' });
           } catch (err: any) {
-            Alert.alert('Error', err?.response?.data?.error?.message ?? 'No se pudo cancelar');
+            showToast({ type: 'error', title: 'No se pudo cancelar', message: err?.response?.data?.error?.message });
           } finally { setCanceling(false); }
         },
       },
@@ -93,23 +94,23 @@ export default function ReservaDetailScreen() {
         referencia: referencia || undefined,
       });
       setPayModal(false);
-      Alert.alert('Pago registrado', 'Tu pago ha sido registrado. Puedes generar tu factura.');
+      showToast({ type: 'success', title: 'Pago registrado', message: 'Puedes generar tu factura.' });
       await load();
     } catch (err: any) {
-      Alert.alert('Error', err?.response?.data?.error?.message ?? 'Error al procesar el pago');
+      showToast({ type: 'error', title: 'Error al procesar el pago', message: err?.response?.data?.error?.message });
     } finally { setSubmitting(false); }
   };
 
   const handleFactura = async () => {
-    if (!ruc.trim() || !razon.trim()) { Alert.alert('Campos requeridos', 'Ingresa RUC/Cédula y razón social'); return; }
+    if (!ruc.trim() || !razon.trim()) { showToast({ type: 'warning', title: 'Campos requeridos', message: 'Ingresa RUC/Cédula y razón social' }); return; }
     setSubmitting(true);
     try {
       const { data } = await pagosApi.generarFactura({ reservaId: reserva.id, rucCliente: ruc.trim(), razonSocial: razon.trim() });
       setFactura(data.data);
       setFactModal(false);
-      Alert.alert('Factura generada', `Factura N° ${data.data.numeroFactura}`);
+      showToast({ type: 'success', title: 'Factura generada', message: `N° ${data.data.numeroFactura}` });
     } catch (err: any) {
-      Alert.alert('Error', err?.response?.data?.error?.message ?? 'Error al generar factura');
+      showToast({ type: 'error', title: 'Error al generar factura', message: err?.response?.data?.error?.message });
     } finally { setSubmitting(false); }
   };
 

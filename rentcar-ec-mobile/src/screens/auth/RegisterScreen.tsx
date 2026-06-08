@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert,
+  StyleSheet, KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
+import { showToast } from '../../components/Toast';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -33,15 +34,15 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!nombres.trim() || !apellidos.trim() || !email.trim() || !password) {
-      Alert.alert('Campos requeridos', 'Completa todos los campos obligatorios');
+      showToast({ type: 'warning', title: 'Campos requeridos', message: 'Completa todos los campos obligatorios' });
       return;
     }
     if (password !== confirm) {
-      Alert.alert('Contraseñas', 'Las contraseñas no coinciden');
+      showToast({ type: 'warning', title: 'Contraseñas no coinciden', message: 'Verifica que ambas contraseñas sean iguales' });
       return;
     }
     if (password.length < 6) {
-      Alert.alert('Contraseña débil', 'Debe tener al menos 6 caracteres');
+      showToast({ type: 'warning', title: 'Contraseña muy corta', message: 'Debe tener al menos 6 caracteres' });
       return;
     }
     setLoading(true);
@@ -56,7 +57,11 @@ export default function RegisterScreen() {
       await saveToken(data.data.token);
       setUser(data.data.user);
     } catch (err: any) {
-      Alert.alert('Error de registro', err?.response?.data?.error?.message ?? 'Error al crear la cuenta');
+      showToast({
+        type: 'error',
+        title: 'Error de registro',
+        message: err?.response?.data?.error?.message ?? 'Error al crear la cuenta',
+      });
     } finally {
       setLoading(false);
     }

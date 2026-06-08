@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, ScrollView, Alert, Modal,
+  KeyboardAvoidingView, Platform, ScrollView, Modal,
 } from 'react-native';
+import { showToast } from '../../components/Toast';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,22 +26,32 @@ export default function LoginScreen() {
   const [serverUrl,  setServerUrl]  = useState(getCurrentServerUrl);
 
   const handleSaveServer = async () => {
-    if (!serverUrl.startsWith('http')) { Alert.alert('URL inválida', 'Debe comenzar con http://'); return; }
+    if (!serverUrl.startsWith('http')) {
+      showToast({ type: 'warning', title: 'URL inválida', message: 'Debe comenzar con http://' });
+      return;
+    }
     await saveServerUrl(serverUrl);
     setShowServer(false);
+    showToast({ type: 'success', title: 'Servidor guardado' });
   };
 
   const handleLogin = async () => {
-    if (!email.trim() || !password) { Alert.alert('Campos requeridos', 'Ingresa tu email y contraseña'); return; }
+    if (!email.trim() || !password) {
+      showToast({ type: 'warning', title: 'Campos requeridos', message: 'Ingresa tu email y contraseña' });
+      return;
+    }
     setLoading(true);
     try {
       await login(email.trim().toLowerCase(), password);
     } catch (err: any) {
       const isNetwork = !err?.response;
-      const msg = isNetwork
-        ? 'El servidor tardó en responder. Vuelve a intentarlo.'
-        : (err?.response?.data?.error?.message ?? 'Credenciales inválidas');
-      Alert.alert(isNetwork ? 'Sin respuesta' : 'Acceso denegado', msg);
+      showToast({
+        type: isNetwork ? 'warning' : 'error',
+        title: isNetwork ? 'Sin respuesta del servidor' : 'Acceso denegado',
+        message: isNetwork
+          ? 'El servidor tardó en responder. Vuelve a intentarlo.'
+          : (err?.response?.data?.error?.message ?? 'Credenciales inválidas'),
+      });
     } finally { setLoading(false); }
   };
 
