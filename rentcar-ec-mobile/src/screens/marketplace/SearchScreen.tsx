@@ -5,11 +5,12 @@ import {
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/colors';
 import { vehiculosApi, Vehiculo } from '../../api/vehiculos.api';
 import VehiculoCard from '../../components/VehiculoCard';
 import { RootStackParams } from '../../navigation/AppNavigator';
-import { useBusEvents } from '../../hooks/useBusEvents';
+import { useVehiculoVersion } from '../../context/VehiculoEventsContext';
 
 type Nav = StackNavigationProp<RootStackParams>;
 
@@ -27,8 +28,6 @@ export default function SearchScreen() {
     return Math.max(0, Math.ceil(diff / 86400000));
   })();
 
-  // Sequence number: solo aplica la respuesta de la llamada más reciente
-  // para evitar que una respuesta lenta obsoleta sobreescriba datos frescos
   const loadSeq = useRef(0);
 
   const load = useCallback((quiet = false) => {
@@ -36,7 +35,7 @@ export default function SearchScreen() {
     const seq = ++loadSeq.current;
     vehiculosApi.list({ limit: 50, status: 'DISPONIBLE' })
       .then(({ data }) => {
-        if (seq !== loadSeq.current) return; // respuesta obsoleta, ignorar
+        if (seq !== loadSeq.current) return;
         setVehiculos(data.data.data ?? []);
       })
       .catch(() => {
@@ -50,8 +49,6 @@ export default function SearchScreen() {
       });
   }, []);
 
-  // Al enfocar: recarga inmediata + checkpoints a 2s y 6s para capturar
-  // el update de vehículo que ocurre en background tras crear/cancelar reserva
   useFocusEffect(useCallback(() => {
     load();
     const t1 = setTimeout(() => load(true), 2_000);
@@ -59,22 +56,20 @@ export default function SearchScreen() {
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [load]));
 
-  // Polling cada 5s como red de seguridad
   useEffect(() => {
-    const interval = setInterval(() => load(true), 5_000);
+    const interval = setInterval(() => load(true), 2_000);
     return () => clearInterval(interval);
   }, [load]);
 
-  // SSE: recarga inmediata cuando el backend emite VEHICULO_ACTUALIZADO
-  // (funciona para cancelaciones desde el admin panel sin acción del usuario)
-  useBusEvents(() => load(true));
+  const sseVersion = useVehiculoVersion();
+  useEffect(() => { if (sseVersion > 0) load(true); }, [sseVersion, load]);
 
   const Header = (
     <>
-      {/* ── Barra de fecha ── */}
       <View style={styles.filterBar}>
+        <Ionicons name="calendar-outline" size={18} color={Colors.muted} style={{ marginRight: 10 }} />
         <View style={styles.dateGroup}>
-          <Text style={styles.dateLabel}>📅  Inicio</Text>
+          <Text style={styles.dateLabel}>Inicio</Text>
           <TextInput
             style={styles.dateInput}
             value={fechaInicio}
@@ -87,8 +82,9 @@ export default function SearchScreen() {
 
         <View style={styles.dateSep} />
 
+        <Ionicons name="flag-outline" size={18} color={Colors.muted} style={{ marginHorizontal: 8 }} />
         <View style={styles.dateGroup}>
-          <Text style={styles.dateLabel}>🏁  Fin</Text>
+          <Text style={styles.dateLabel}>Fin</Text>
           <TextInput
             style={styles.dateInput}
             value={fechaFin}
@@ -100,7 +96,6 @@ export default function SearchScreen() {
         </View>
       </View>
 
-      {/* ── Resumen ── */}
       <View style={styles.summaryRow}>
         <Text style={styles.summaryCount}>
           {loading ? '…' : vehiculos.length} vehículos
@@ -164,18 +159,16 @@ const styles = StyleSheet.create({
   bg:         { flex: 1, backgroundColor: Colors.bg },
   list:       { padding: 16 },
 
-  // Filter bar
   filterBar:  { backgroundColor: Colors.card, marginHorizontal: 16, marginTop: 12, marginBottom: 4, borderRadius: 16, flexDirection: 'row', alignItems: 'center', padding: 14, borderWidth: 1, borderColor: Colors.border },
   dateGroup:  { flex: 1 },
   dateLabel:  { fontSize: 11, color: Colors.muted, fontWeight: '600', marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.5 },
   dateInput:  { color: Colors.text, fontSize: 15, fontWeight: '600', padding: 0 },
-  dateSep:    { width: 1, height: 36, backgroundColor: Colors.border, marginHorizontal: 14 },
+  dateSep:    { width: 1, height: 36, backgroundColor: Colors.border, marginHorizontal: 8 },
 
-  // Summary row
-  summaryRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 16, marginVertical: 12 },
-  summaryCount:{ color: Colors.muted, fontSize: 14, fontWeight: '600' },
-  daysBadge:  { backgroundColor: `${Colors.primary}22`, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4 },
-  daysText:   { color: Colors.primary, fontWeight: '700', fontSize: 13 },
+  summaryRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 16, marginVertical: 12 },
+  summaryCount: { color: Colors.muted, fontSize: 14, fontWeight: '600' },
+  daysBadge:    { backgroundColor: `${Colors.primary}22`, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4 },
+  daysText:     { color: Colors.primary, fontWeight: '700', fontSize: 13 },
 
-  empty:      { color: Colors.muted, textAlign: 'center', marginTop: 40, fontSize: 15 },
+  empty: { color: Colors.muted, textAlign: 'center', marginTop: 40, fontSize: 15 },
 });

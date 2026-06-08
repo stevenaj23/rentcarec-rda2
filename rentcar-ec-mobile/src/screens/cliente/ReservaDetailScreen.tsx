@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/colors';
 import { reservasApi, Reserva } from '../../api/reservas.api';
 import { pagosApi, Factura } from '../../api/pagos.api';
@@ -14,11 +15,11 @@ import { RootStackParams } from '../../navigation/AppNavigator';
 type Route = RouteProp<RootStackParams, 'ReservaDetail'>;
 type Nav   = StackNavigationProp<RootStackParams>;
 
-const METODOS = [
-  { key: 'EFECTIVO',          label: '💵  Efectivo' },
-  { key: 'TARJETA_CREDITO',   label: '💳  Tarjeta de crédito' },
-  { key: 'TARJETA_DEBITO',    label: '💳  Tarjeta de débito' },
-  { key: 'TRANSFERENCIA',     label: '🏦  Transferencia' },
+const METODOS: { key: string; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: 'EFECTIVO',        label: 'Efectivo',          icon: 'cash-outline' },
+  { key: 'TARJETA_CREDITO', label: 'Tarjeta de crédito',icon: 'card-outline' },
+  { key: 'TARJETA_DEBITO',  label: 'Tarjeta de débito', icon: 'card-outline' },
+  { key: 'TRANSFERENCIA',   label: 'Transferencia',      icon: 'business-outline' },
 ] as const;
 
 export default function ReservaDetailScreen() {
@@ -72,8 +73,6 @@ export default function ReservaDetailScreen() {
           setCanceling(true);
           try {
             await reservasApi.cancel(params.reservaId);
-            // Ir directo al tab de búsqueda: useFocusEffect carga la lista
-            // actualizada y el vehículo aparece disponible de inmediato
             (navigation as any).navigate('Main', { screen: 'SearchTab' });
           } catch (err: any) {
             Alert.alert('Error', err?.response?.data?.error?.message ?? 'No se pudo cancelar');
@@ -94,7 +93,7 @@ export default function ReservaDetailScreen() {
         referencia: referencia || undefined,
       });
       setPayModal(false);
-      Alert.alert('✅ Pago registrado', 'Tu pago ha sido registrado. Puedes generar tu factura.');
+      Alert.alert('Pago registrado', 'Tu pago ha sido registrado. Puedes generar tu factura.');
       await load();
     } catch (err: any) {
       Alert.alert('Error', err?.response?.data?.error?.message ?? 'Error al procesar el pago');
@@ -108,7 +107,7 @@ export default function ReservaDetailScreen() {
       const { data } = await pagosApi.generarFactura({ reservaId: reserva.id, rucCliente: ruc.trim(), razonSocial: razon.trim() });
       setFactura(data.data);
       setFactModal(false);
-      Alert.alert('🧾 Factura generada', `Factura N° ${data.data.numeroFactura}`);
+      Alert.alert('Factura generada', `Factura N° ${data.data.numeroFactura}`);
     } catch (err: any) {
       Alert.alert('Error', err?.response?.data?.error?.message ?? 'Error al generar factura');
     } finally { setSubmitting(false); }
@@ -131,7 +130,7 @@ export default function ReservaDetailScreen() {
       {/* ── Vehículo ── */}
       {reserva.vehiculo && (
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>🚗  Vehículo</Text>
+          <CardTitle icon="car-sport-outline" label="Vehículo" />
           <Text style={styles.vehiculoNombre}>{reserva.vehiculo.nombre}</Text>
           <View style={styles.vehiculoMeta}>
             {reserva.vehiculo.placa && (
@@ -149,7 +148,7 @@ export default function ReservaDetailScreen() {
 
       {/* ── Fechas ── */}
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>📅  Período de alquiler</Text>
+        <CardTitle icon="calendar-outline" label="Período de alquiler" />
         <View style={styles.datesRow}>
           <View style={styles.dateBlock}>
             <Text style={styles.dateLabel}>Recogida</Text>
@@ -157,7 +156,7 @@ export default function ReservaDetailScreen() {
           </View>
           <View style={styles.datesCenter}>
             <Text style={styles.daysChip}>{reserva.diasTotal} día{reserva.diasTotal !== 1 ? 's' : ''}</Text>
-            <Text style={styles.arrow}>→</Text>
+            <Ionicons name="arrow-forward" size={16} color={Colors.muted} />
           </View>
           <View style={[styles.dateBlock, { alignItems: 'flex-end' }]}>
             <Text style={styles.dateLabel}>Devolución</Text>
@@ -169,7 +168,7 @@ export default function ReservaDetailScreen() {
       {/* ── Seguro ── */}
       {reserva.seguro && (
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>🛡️  Seguro</Text>
+          <CardTitle icon="shield-checkmark-outline" label="Seguro" />
           <Row label={reserva.seguro.nombre} val={`$${Number(reserva.seguro.precioDia).toFixed(2)}/día`} />
         </View>
       )}
@@ -177,20 +176,16 @@ export default function ReservaDetailScreen() {
       {/* ── Extras ── */}
       {(reserva.extras ?? []).length > 0 && (
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>➕  Extras</Text>
+          <CardTitle icon="add-circle-outline" label="Extras" />
           {(reserva.extras ?? []).map((e, i) => (
-            <Row
-              key={i}
-              label={`× ${e.cantidad}`}
-              val={`$${Number(e.subtotal).toFixed(2)}`}
-            />
+            <Row key={i} label={`× ${e.cantidad}`} val={`$${Number(e.subtotal).toFixed(2)}`} />
           ))}
         </View>
       )}
 
       {/* ── Desglose de precio ── */}
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>💰  Desglose de precio</Text>
+        <CardTitle icon="wallet-outline" label="Desglose de precio" />
         <Row label={`Alquiler (${reserva.diasTotal} días)`} val={`$${Number(reserva.precioBase).toFixed(2)}`} />
         {Number(reserva.precioExtras) > 0 && <Row label="Extras"  val={`$${Number(reserva.precioExtras).toFixed(2)}`} />}
         {Number(reserva.precioSeguro) > 0 && <Row label="Seguro"  val={`$${Number(reserva.precioSeguro).toFixed(2)}`} />}
@@ -201,7 +196,7 @@ export default function ReservaDetailScreen() {
       {/* ── Pagos ── */}
       {pagos.length > 0 && (
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>💳  Pagos</Text>
+          <CardTitle icon="card-outline" label="Pagos" />
           {pagos.map(p => (
             <View key={p.id} style={styles.pagoRow}>
               <View style={{ flex: 1 }}>
@@ -223,7 +218,7 @@ export default function ReservaDetailScreen() {
       {/* ── Factura ── */}
       {factura && (
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>🧾  Factura</Text>
+          <CardTitle icon="receipt-outline" label="Factura" />
           <Row label="N° Factura"  val={factura.numeroFactura} />
           {factura.rucCliente  && <Row label="RUC"          val={factura.rucCliente} />}
           {factura.razonSocial && <Row label="Razón social" val={factura.razonSocial} />}
@@ -237,7 +232,7 @@ export default function ReservaDetailScreen() {
       {/* ── Notas ── */}
       {reserva.notas ? (
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>📝  Notas</Text>
+          <CardTitle icon="document-text-outline" label="Notas" />
           <Text style={styles.muted}>{reserva.notas}</Text>
         </View>
       ) : null}
@@ -245,12 +240,14 @@ export default function ReservaDetailScreen() {
       {/* ── Acciones ── */}
       {canPay && (
         <TouchableOpacity style={styles.payBtn} onPress={() => setPayModal(true)} activeOpacity={0.85}>
-          <Text style={styles.payBtnText}>💳  Registrar pago</Text>
+          <Ionicons name="card-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
+          <Text style={styles.payBtnText}>Registrar pago</Text>
         </TouchableOpacity>
       )}
       {canFactura && (
         <TouchableOpacity style={styles.outlineBtn} onPress={() => setFactModal(true)} activeOpacity={0.85}>
-          <Text style={styles.outlineBtnText}>🧾  Generar factura</Text>
+          <Ionicons name="receipt-outline" size={18} color={Colors.primary} style={{ marginRight: 8 }} />
+          <Text style={styles.outlineBtnText}>Generar factura</Text>
         </TouchableOpacity>
       )}
       {canCancel && (
@@ -273,7 +270,8 @@ export default function ReservaDetailScreen() {
                 style={[styles.optionRow, metodo === m.key && styles.optionSel]}
                 onPress={() => setMetodo(m.key)}
               >
-                <Text style={styles.optionTxt}>{m.label}</Text>
+                <Ionicons name={m.icon} size={18} color={metodo === m.key ? Colors.primary : Colors.muted} style={{ marginRight: 10 }} />
+                <Text style={[styles.optionTxt, metodo === m.key && { color: Colors.primary }]}>{m.label}</Text>
               </TouchableOpacity>
             ))}
 
@@ -343,6 +341,15 @@ export default function ReservaDetailScreen() {
   );
 }
 
+function CardTitle({ icon, label }: { icon: keyof typeof Ionicons.glyphMap; label: string }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 8 }}>
+      <Ionicons name={icon} size={16} color={Colors.primary} />
+      <Text style={{ fontSize: 14, fontWeight: '700', color: Colors.text, letterSpacing: 0.3 }}>{label}</Text>
+    </View>
+  );
+}
+
 function Row({ label, val, highlight }: { label: string; val: string; highlight?: boolean }) {
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -358,7 +365,6 @@ const styles = StyleSheet.create({
   container:       { padding: 16, paddingBottom: 40 },
 
   card:            { backgroundColor: Colors.card, borderRadius: 16, padding: 16, marginBottom: 12 },
-  cardTitle:       { fontSize: 14, fontWeight: '700', color: Colors.text, marginBottom: 12, letterSpacing: 0.3 },
 
   headerRow:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   codigo:          { fontSize: 18, fontWeight: '800', color: Colors.text, marginBottom: 4 },
@@ -377,7 +383,6 @@ const styles = StyleSheet.create({
   dateVal:         { fontSize: 15, fontWeight: '700', color: Colors.text },
   datesCenter:     { alignItems: 'center', paddingHorizontal: 12 },
   daysChip:        { backgroundColor: `${Colors.primary}22`, color: Colors.primary, fontSize: 11, fontWeight: '700', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, marginBottom: 4 },
-  arrow:           { color: Colors.muted, fontSize: 16 },
 
   divider:         { borderTopWidth: 1, borderTopColor: Colors.border, marginVertical: 10 },
 
@@ -390,9 +395,9 @@ const styles = StyleSheet.create({
   pagoStatusOk:    { backgroundColor: '#16a34a33' },
   pagoStatusTxt:   { fontSize: 10, fontWeight: '700', color: Colors.text },
 
-  payBtn:          { backgroundColor: Colors.primary, borderRadius: 14, padding: 16, alignItems: 'center', marginBottom: 10 },
+  payBtn:          { backgroundColor: Colors.primary, borderRadius: 14, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
   payBtnText:      { color: '#fff', fontWeight: '700', fontSize: 16 },
-  outlineBtn:      { borderWidth: 1.5, borderColor: Colors.primary, borderRadius: 14, padding: 14, alignItems: 'center', marginBottom: 10 },
+  outlineBtn:      { borderWidth: 1.5, borderColor: Colors.primary, borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
   outlineBtnText:  { color: Colors.primary, fontWeight: '700', fontSize: 15 },
   cancelBtn:       { borderWidth: 1.5, borderColor: '#EF4444', borderRadius: 14, padding: 14, alignItems: 'center', marginBottom: 10 },
   cancelBtnText:   { color: '#EF4444', fontWeight: '700', fontSize: 15 },
@@ -402,7 +407,7 @@ const styles = StyleSheet.create({
   modalTitle:      { fontSize: 18, fontWeight: '800', color: Colors.text, marginBottom: 4 },
   modalAmount:     { fontSize: 30, fontWeight: '800', color: Colors.primary, marginBottom: 18 },
   modalLabel:      { color: Colors.muted, fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, marginTop: 8 },
-  optionRow:       { padding: 12, borderRadius: 10, borderWidth: 1, borderColor: Colors.border, marginBottom: 6 },
+  optionRow:       { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: Colors.border, marginBottom: 6 },
   optionSel:       { borderColor: Colors.primary, backgroundColor: `${Colors.primary}18` },
   optionTxt:       { color: Colors.text, fontWeight: '600', fontSize: 14 },
   input:           { backgroundColor: Colors.bg, color: Colors.text, borderRadius: 10, padding: 13, borderWidth: 1, borderColor: Colors.border, fontSize: 14, marginBottom: 8 },

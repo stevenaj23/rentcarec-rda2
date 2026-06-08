@@ -5,20 +5,21 @@ import {
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/colors';
 import { vehiculosApi, Vehiculo } from '../../api/vehiculos.api';
 import VehiculoCard from '../../components/VehiculoCard';
 import SkeletonCard from '../../components/SkeletonCard';
 import { RootStackParams } from '../../navigation/AppNavigator';
 import { useAuth } from '../../context/AuthContext';
-import { useBusEvents } from '../../hooks/useBusEvents';
+import { useVehiculoVersion } from '../../context/VehiculoEventsContext';
 
 type Nav = StackNavigationProp<RootStackParams>;
 
-const STATS = [
-  { value: '200+', label: 'Vehículos', icon: '🚗' },
-  { value: '3',    label: 'Ciudades',  icon: '🏙️' },
-  { value: '24/7', label: 'Soporte',   icon: '🛡️' },
+const STATS: { value: string; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { value: '200+', label: 'Vehículos', icon: 'car-sport-outline' },
+  { value: '3',    label: 'Ciudades',  icon: 'location-outline' },
+  { value: '24/7', label: 'Soporte',   icon: 'shield-checkmark-outline' },
 ];
 
 export default function HomeScreen() {
@@ -30,7 +31,8 @@ export default function HomeScreen() {
   const [refreshing,   setRefreshing]   = useState(false);
   const [selectedCat,  setSelectedCat]  = useState('Todos');
 
-  const loadSeq = useRef(0);
+  const loadSeq    = useRef(0);
+  const sseVersion = useVehiculoVersion();
 
   const load = useCallback((quiet = false) => {
     if (!quiet) setLoading(true);
@@ -50,7 +52,6 @@ export default function HomeScreen() {
       });
   }, []);
 
-  // Al enfocar: recarga inmediata + checkpoints a 2s y 6s
   useFocusEffect(useCallback(() => {
     load();
     const t1 = setTimeout(() => load(true), 2_000);
@@ -58,14 +59,12 @@ export default function HomeScreen() {
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [load]));
 
-  // Polling cada 5s como red de seguridad
   useEffect(() => {
-    const interval = setInterval(() => load(true), 5_000);
+    const interval = setInterval(() => load(true), 2_000);
     return () => clearInterval(interval);
   }, [load]);
 
-  // SSE: recarga cuando backend emite VEHICULO_ACTUALIZADO
-  useBusEvents(() => load(true));
+  useEffect(() => { if (sseVersion > 0) load(true); }, [sseVersion, load]);
 
   const categories = ['Todos', ...Array.from(new Set(vehiculos.map(v => v.categoria.nombre)))];
   const filtered   = selectedCat === 'Todos'
@@ -78,14 +77,14 @@ export default function HomeScreen() {
     <View>
       {/* ── Hero ── */}
       <View style={styles.hero}>
-        <Text style={styles.greeting}>Hola, {firstName} 👋</Text>
+        <Text style={styles.greeting}>Hola, {firstName}</Text>
         <Text style={styles.heroTitle}>Encuentra el vehículo{'\n'}perfecto para tu viaje</Text>
 
         <TouchableOpacity style={styles.searchBar} onPress={goSearch} activeOpacity={0.8}>
-          <Text style={styles.searchIcon}>🔍</Text>
+          <Ionicons name="search-outline" size={18} color={Colors.muted} style={{ marginRight: 10 }} />
           <Text style={styles.searchPlaceholder}>Buscar por fecha y categoría…</Text>
           <View style={styles.searchArrow}>
-            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>›</Text>
+            <Ionicons name="arrow-forward" size={14} color="#fff" />
           </View>
         </TouchableOpacity>
       </View>
@@ -94,7 +93,7 @@ export default function HomeScreen() {
       <View style={styles.statsRow}>
         {STATS.map(({ value, label, icon }) => (
           <View key={label} style={styles.stat}>
-            <Text style={styles.statIcon}>{icon}</Text>
+            <Ionicons name={icon} size={22} color={Colors.primary} style={{ marginBottom: 4 }} />
             <Text style={styles.statValue}>{value}</Text>
             <Text style={styles.statLabel}>{label}</Text>
           </View>
@@ -130,7 +129,6 @@ export default function HomeScreen() {
         {!loading && <Text style={styles.sectionCount}>{filtered.length} vehículos</Text>}
       </View>
 
-      {/* Skeletons mientras carga */}
       {loading && (
         <>
           <SkeletonCard />
@@ -179,14 +177,12 @@ const styles = StyleSheet.create({
   greeting:          { fontSize: 13, color: Colors.primary, fontWeight: '700', marginBottom: 6, letterSpacing: 0.3 },
   heroTitle:         { fontSize: 24, fontWeight: '800', color: Colors.text, lineHeight: 32, marginBottom: 18 },
   searchBar:         { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.bg, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, borderWidth: 1, borderColor: Colors.border },
-  searchIcon:        { fontSize: 16, marginRight: 10 },
   searchPlaceholder: { flex: 1, color: Colors.muted, fontSize: 14 },
   searchArrow:       { backgroundColor: Colors.primary, width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
 
   // Stats
   statsRow:  { flexDirection: 'row', gap: 10, marginBottom: 16 },
   stat:      { flex: 1, backgroundColor: Colors.card, borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
-  statIcon:  { fontSize: 20, marginBottom: 4 },
   statValue: { fontSize: 17, fontWeight: '800', color: Colors.primary },
   statLabel: { fontSize: 10, color: Colors.muted, marginTop: 2, fontWeight: '600' },
 

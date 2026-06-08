@@ -28,17 +28,17 @@ jobs:
 
       - name: Apply scale-to-zero a todos los servicios
         run: |
-          APPS=(
+          # Servicios que pueden bajar a 0 cuando no hay tráfico
+          SCALE_ZERO=(
             rentcar-auth
             rentcar-inventario
             rentcar-org
             rentcar-operaciones
             rentcar-financiero
             rentcar-mantenimiento
-            rentcar-bus
             rentcar-gateway
           )
-          for APP in "${APPS[@]}"; do
+          for APP in "${SCALE_ZERO[@]}"; do
             echo "→ $APP: min=0 max=3"
             az containerapp update \
               --name    "$APP" \
@@ -47,6 +47,16 @@ jobs:
               --max-replicas 3 \
               --no-wait \
             && echo "  ✓ OK" \
-            || echo "  ⚠ omitido (no encontrado o fallo temporal)"
+            || echo "  ⚠ omitido"
           done
-          echo "Listo — los servicios escalarán a 0 réplicas cuando no haya tráfico."
+          # bus-service: mínimo 1 réplica siempre activa (mantiene conexiones SSE)
+          echo "→ rentcar-bus: min=1 max=3 (SSE activo)"
+          az containerapp update \
+            --name    rentcar-bus \
+            --resource-group "${{ env.RESOURCE_GROUP }}" \
+            --min-replicas 1 \
+            --max-replicas 3 \
+            --no-wait \
+          && echo "  ✓ OK" \
+          || echo "  ⚠ omitido"
+          echo "Listo."

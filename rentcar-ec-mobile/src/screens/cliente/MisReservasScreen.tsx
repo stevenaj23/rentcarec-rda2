@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/colors';
 import { reservasApi, Reserva } from '../../api/reservas.api';
 import StatusBadge from '../../components/StatusBadge';
@@ -14,13 +15,13 @@ type Nav = StackNavigationProp<RootStackParams>;
 
 function fmt(iso: string) { return iso.slice(0, 10); }
 
-function statusIcon(status: string) {
+function StatusIcon({ status }: { status: string }) {
   switch (status) {
-    case 'CONFIRMADA':  return '✅';
-    case 'ACTIVA':      return '🚗';
-    case 'COMPLETADA':  return '🏁';
-    case 'CANCELADA':   return '❌';
-    default:            return '⏳';
+    case 'CONFIRMADA':  return <Ionicons name="checkmark-circle"   size={16} color={Colors.success} />;
+    case 'ACTIVA':      return <Ionicons name="car-sport"          size={16} color={Colors.primary} />;
+    case 'COMPLETADA':  return <Ionicons name="flag"               size={16} color={Colors.muted} />;
+    case 'CANCELADA':   return <Ionicons name="close-circle"       size={16} color={Colors.danger} />;
+    default:            return <Ionicons name="time-outline"        size={16} color={Colors.warning} />;
   }
 }
 
@@ -41,7 +42,6 @@ export default function MisReservasScreen() {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  // Polling cada 12 segundos para reflejar cambios de estado hechos desde el panel admin
   useEffect(() => {
     const interval = setInterval(() => load(true), 12_000);
     return () => clearInterval(interval);
@@ -64,7 +64,7 @@ export default function MisReservasScreen() {
       }
       ListEmptyComponent={
         <View style={styles.emptyBox}>
-          <Text style={{ fontSize: 56, marginBottom: 16 }}>🗓️</Text>
+          <Ionicons name="calendar-outline" size={56} color={Colors.border} style={{ marginBottom: 16 }} />
           <Text style={styles.emptyTitle}>Sin reservas aún</Text>
           <Text style={styles.emptyText}>Explora el catálogo y reserva{'\n'}tu próximo vehículo</Text>
         </View>
@@ -78,7 +78,6 @@ export default function MisReservasScreen() {
             onPress={() => nav.navigate('ReservaDetail', { reservaId: r.id })}
             activeOpacity={0.8}
           >
-            {/* Top row: código + badge */}
             <View style={styles.topRow}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.codigo}>{r.codigoReserva}</Text>
@@ -87,7 +86,6 @@ export default function MisReservasScreen() {
               <StatusBadge status={r.status} />
             </View>
 
-            {/* Fechas */}
             <View style={styles.datesRow}>
               <View style={styles.dateBlock}>
                 <Text style={styles.dateLabel}>Recogida</Text>
@@ -95,7 +93,7 @@ export default function MisReservasScreen() {
               </View>
               <View style={styles.datesCenter}>
                 <Text style={styles.daysText}>{r.diasTotal} día{r.diasTotal !== 1 ? 's' : ''}</Text>
-                <Text style={styles.arrow}>→</Text>
+                <Ionicons name="arrow-forward" size={16} color={Colors.muted} />
               </View>
               <View style={[styles.dateBlock, { alignItems: 'flex-end' }]}>
                 <Text style={styles.dateLabel}>Devolución</Text>
@@ -103,10 +101,9 @@ export default function MisReservasScreen() {
               </View>
             </View>
 
-            {/* Bottom row */}
             <View style={styles.bottomRow}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={{ fontSize: 14 }}>{statusIcon(r.status)}</Text>
+                <StatusIcon status={r.status} />
                 {placa && <Text style={styles.placa}>{placa}</Text>}
               </View>
               <Text style={styles.total}>${Number(r.totalAmount).toFixed(2)}</Text>
@@ -138,7 +135,6 @@ const styles = StyleSheet.create({
   dateVal:       { fontSize: 14, fontWeight: '700', color: Colors.text },
   datesCenter:   { alignItems: 'center', paddingHorizontal: 12 },
   daysText:      { fontSize: 11, color: Colors.primary, fontWeight: '700', marginBottom: 2 },
-  arrow:         { color: Colors.muted, fontSize: 16 },
 
   bottomRow:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   placa:         { fontSize: 12, color: Colors.muted, fontWeight: '600', letterSpacing: 0.5 },
