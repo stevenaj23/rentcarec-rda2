@@ -1,0 +1,52 @@
+name: Scale-to-zero — Azure Container Apps
+
+# Solo corre en Azure (push a master o trigger manual).
+# Docker-compose local nunca toca este archivo.
+on:
+  push:
+    branches: [master, main]
+  workflow_dispatch:
+
+concurrency:
+  group: scale-to-zero
+  cancel-in-progress: true   # si llegan dos pushes seguidos, descarta el viejo
+
+env:
+  RESOURCE_GROUP: rg-urbancar
+
+jobs:
+  scale:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Login Azure
+        run: |
+          az login --service-principal \
+            -u "${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}" \
+            -p "${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}" \
+            --tenant "${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}"
+          az account set --subscription "${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}"
+
+      - name: Apply scale-to-zero a todos los servicios
+        run: |
+          APPS=(
+            rentcar-auth
+            rentcar-inventario
+            rentcar-org
+            rentcar-operaciones
+            rentcar-financiero
+            rentcar-mantenimiento
+            rentcar-bus
+            rentcar-gateway
+          )
+          for APP in "${APPS[@]}"; do
+            echo "→ $APP: min=0 max=3"
+            az containerapp update \
+              --name    "$APP" \
+              --resource-group "${{ env.RESOURCE_GROUP }}" \
+              --min-replicas 0 \
+              --max-replicas 3 \
+              --no-wait \
+            && echo "  ✓ OK" \
+            || echo "  ⚠ omitido (no encontrado o fallo temporal)"
+          done
+          echo "Listo — los servicios escalarán a 0 réplicas cuando no haya tráfico."
