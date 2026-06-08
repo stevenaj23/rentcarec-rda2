@@ -36,7 +36,11 @@ export default function LoginScreen() {
     try {
       await login(email.trim().toLowerCase(), password);
     } catch (err: any) {
-      Alert.alert('Acceso denegado', err?.response?.data?.error?.message ?? 'Credenciales inválidas');
+      const isNetwork = !err?.response;
+      const msg = isNetwork
+        ? 'El servidor tardó en responder. Vuelve a intentarlo.'
+        : (err?.response?.data?.error?.message ?? 'Credenciales inválidas');
+      Alert.alert(isNetwork ? 'Sin respuesta' : 'Acceso denegado', msg);
     } finally { setLoading(false); }
   };
 
