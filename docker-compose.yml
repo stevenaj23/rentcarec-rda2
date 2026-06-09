@@ -2,6 +2,50 @@ version: '3.9'
 
 services:
 
+  # ── RabbitMQ — Event Bus ─────────────────────────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: rentcar-rabbitmq
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+    environment:
+      - RABBITMQ_DEFAULT_USER=rentcar
+      - RABBITMQ_DEFAULT_PASS=rentcar2024
+      - RABBITMQ_DEFAULT_VHOST=rentcar
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - rentcar-net
+    restart: unless-stopped
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ── graphql-service (Puerto 3008) ───────────────────────────────────────────
+  graphql-service:
+    build: ./graphql-service
+    environment:
+      - PORT=3008
+      - NODE_ENV=${NODE_ENV:-production}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - INVENTARIO_SERVICE_URL=http://inventario-service:3002
+      - ORG_SERVICE_URL=http://org-service:3003
+      - OPERACIONES_SERVICE_URL=http://operaciones-service:3004
+      - FINANCIERO_SERVICE_URL=http://financiero-service:3005
+    depends_on:
+      - auth-service
+      - inventario-service
+      - org-service
+      - operaciones-service
+      - financiero-service
+    networks:
+      - rentcar-net
+    restart: unless-stopped
+
   # ── API Gateway ─────────────────────────────────────────────────────────────
   nginx:
     build:
@@ -17,8 +61,10 @@ services:
       - financiero-service
       - mantenimiento-service
       - bus-service
+      - graphql-service
     networks:
       - rentcar-net
+    restart: unless-stopped
 
   # ── auth-service (HTTP 3001) ────────────────────────────────────────────────
   auth-service:
@@ -46,6 +92,11 @@ services:
       - GRPC_PORT=5002
       - NODE_ENV=${NODE_ENV:-production}
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
+      - RABBITMQ_URL=amqp://rentcar:rentcar2024@rabbitmq:5672/rentcar
+      - RABBITMQ_EXCHANGE=rentcar.eventos
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
     networks:
       - rentcar-net
     restart: unless-stopped
@@ -80,12 +131,20 @@ services:
       - INVENTARIO_GRPC_HOST=inventario-service:5002
       - ORG_GRPC_HOST=org-service:5003
       - FINANCIERO_GRPC_HOST=financiero-service:5005
-      # HTTP client: operaciones consulta usuarios en auth-service
+      # HTTP clients: auth (usuarios) e inventario (fallback enrich)
       - AUTH_SERVICE_URL=http://auth-service:3001
+      - INVENTARIO_SERVICE_URL=http://inventario-service:3002
+      - RABBITMQ_URL=amqp://rentcar:rentcar2024@rabbitmq:5672/rentcar
+      - RABBITMQ_EXCHANGE=rentcar.eventos
     depends_on:
-      - inventario-service
-      - org-service
-      - financiero-service
+      rabbitmq:
+        condition: service_healthy
+      inventario-service:
+        condition: service_started
+      org-service:
+        condition: service_started
+      financiero-service:
+        condition: service_started
     networks:
       - rentcar-net
     restart: unless-stopped
@@ -101,6 +160,11 @@ services:
       - GRPC_PORT=5005
       - NODE_ENV=${NODE_ENV:-production}
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
+      - RABBITMQ_URL=amqp://rentcar:rentcar2024@rabbitmq:5672/rentcar
+      - RABBITMQ_EXCHANGE=rentcar.eventos
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
     networks:
       - rentcar-net
     restart: unless-stopped
@@ -127,12 +191,15 @@ services:
       - PORT=3007
       - NODE_ENV=${NODE_ENV:-production}
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
-      - AZURE_SERVICEBUS_CONNECTION_STRING=${AZURE_SERVICEBUS_CONNECTION_STRING:-}
-      - AZURE_SERVICEBUS_TOPIC=${AZURE_SERVICEBUS_TOPIC:-rentcar-ec-eventos}
+      - RABBITMQ_URL=amqp://rentcar:rentcar2024@rabbitmq:5672/rentcar
+      - RABBITMQ_EXCHANGE=rentcar.eventos
       # gRPC client: bus llama a operaciones
       - OPERACIONES_GRPC_HOST=operaciones-service:5004
     depends_on:
-      - operaciones-service
+      rabbitmq:
+        condition: service_healthy
+      operaciones-service:
+        condition: service_started
     networks:
       - rentcar-net
     restart: unless-stopped
@@ -140,3 +207,6 @@ services:
 networks:
   rentcar-net:
     driver: bridge
+
+volumes:
+  rabbitmq_data:
