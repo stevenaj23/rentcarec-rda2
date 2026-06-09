@@ -70,8 +70,8 @@
         <div class="mt-5 p-4 bg-zinc-800/50 rounded-xl border border-zinc-700/50">
           <p class="text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wide">Credenciales de prueba</p>
           <div class="space-y-1 text-xs text-zinc-500">
-            <p><span class="text-orange-400 font-semibold">Admin:</span> admin@rentcar.ec / Admin2025!</p>
-            <p><span class="text-zinc-300 font-semibold">Cliente:</span> cliente@test.ec / Cliente2025!</p>
+            <p><span class="text-orange-400 font-semibold">Admin:</span> admin@rentcar.ec / Admin2026!</p>
+            <p><span class="text-zinc-300 font-semibold">Cliente:</span> cliente@test.ec / Cliente2026!</p>
           </div>
         </div>
 
