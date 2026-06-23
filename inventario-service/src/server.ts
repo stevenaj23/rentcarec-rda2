@@ -5,6 +5,7 @@ import { vehiculoRepository } from './shared/container.js';
 import { ExtraRepository } from './modules/extras/extra.repository.js';
 import prisma from './shared/database/prisma.js';
 import { logger } from './shared/logger.js';
+import { startInventarioConsumer } from './events/inventario.consumer.js';
 
 const HTTP_PORT = Number(process.env.PORT ?? 3002);
 const GRPC_PORT = Number(process.env.GRPC_PORT ?? 5002);
@@ -16,3 +17,4 @@ app.listen(HTTP_PORT, () => {
 });
 
 startInventarioGrpcServer(vehiculoRepository, extraRepository, GRPC_PORT);
+startInventarioConsumer();

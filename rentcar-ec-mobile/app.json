@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "RentCar EC",
+    "slug": "rentcar-ec-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F172A"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.rentcarec.mobile",
+      "runtimeVersion": {
+        "policy": "appVersion"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0F172A"
+      },
+      "package": "com.rentcarec.mobile",
+      "runtimeVersion": "1.0.0"
+    },
+    "plugins": [
+      "expo-secure-store"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "0cde8393-24a0-4d9a-81eb-60618a99787b"
+      }
+    },
+    "owner": "saroseror",
+    "updates": {
+      "url": "https://u.expo.dev/0cde8393-24a0-4d9a-81eb-60618a99787b"
+    }
+  }
+}

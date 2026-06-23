@@ -31,19 +31,22 @@ export default function MisReservasScreen() {
   const [loading,    setLoading]    = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const load = useCallback(async (quiet = false) => {
-    quiet ? setRefreshing(true) : setLoading(true);
+  const load = useCallback(async (isRefresh = false) => {
+    isRefresh ? setRefreshing(true) : setLoading(true);
     try {
       const { data } = await reservasApi.myList({ limit: 50 });
       setReservas(data.data ?? []);
     } catch {}
-    finally { if (!quiet) setLoading(false); setRefreshing(false); }
+    finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
 
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusEffect(useCallback(() => { load(false); }, [load]));
 
   useEffect(() => {
-    const interval = setInterval(() => load(true), 12_000);
+    const interval = setInterval(() => load(true), 30_000);
     return () => clearInterval(interval);
   }, [load]);
 

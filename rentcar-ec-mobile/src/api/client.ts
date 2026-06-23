@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 
 const TOKEN_KEY      = 'rentcar_token';
 const SERVER_URL_KEY = 'rentcar_server_url';
-const DEFAULT_BASE   = 'https://rentcar-gateway.whiteisland-027d7f3d.canadacentral.azurecontainerapps.io/api/v1';
+const DEFAULT_BASE   = 'https://rentcar-gateway.ambitiousglacier-2be69817.canadacentral.azurecontainerapps.io/api/v1';
 
 export const api = axios.create({
   baseURL: DEFAULT_BASE,

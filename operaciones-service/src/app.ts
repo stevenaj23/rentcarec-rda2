@@ -20,13 +20,19 @@ import { authenticate, requireAdmin } from './shared/middlewares/auth.middleware
 import prisma from './shared/database/prisma.js';
 import pinoHttp from 'pino-http';
 import { logger } from './shared/logger.js';
+import { correlationMiddleware } from './shared/middlewares/correlation.middleware.js';
 
 const app = express();
 
 app.set('trust proxy', 1);
 app.use(cors({ origin: process.env.CORS_ORIGIN ?? '*' }));
 app.use(express.json());
-app.use(pinoHttp({ logger, autoLogging: { ignore: (req) => req.url === '/health' } }));
+app.use(correlationMiddleware);
+app.use(pinoHttp({
+  logger,
+  customProps: (_req, res) => ({ correlationId: res.locals['correlationId'] }),
+  autoLogging: { ignore: (req) => req.url === '/health' },
+}));
 
 app.get('/health', (_req, res) => {
   res.json({ service: 'operaciones-service', status: 'ok', timestamp: new Date().toISOString() });

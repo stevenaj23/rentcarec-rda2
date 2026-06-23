@@ -1,14 +1,14 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  View, Text, TextInput, FlatList,
+  View, Text, FlatList,
   StyleSheet, ActivityIndicator, TouchableOpacity, RefreshControl,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/colors';
 import { vehiculosApi, Vehiculo } from '../../api/vehiculos.api';
 import VehiculoCard from '../../components/VehiculoCard';
+import DateRangePicker from '../../components/DateRangePicker';
 import { RootStackParams } from '../../navigation/AppNavigator';
 import { useVehiculoVersion } from '../../context/VehiculoEventsContext';
 
@@ -51,13 +51,11 @@ export default function SearchScreen() {
 
   useFocusEffect(useCallback(() => {
     load();
-    const t1 = setTimeout(() => load(true), 2_000);
-    const t2 = setTimeout(() => load(true), 6_000);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
+    return () => {};
   }, [load]));
 
   useEffect(() => {
-    const interval = setInterval(() => load(true), 2_000);
+    const interval = setInterval(() => load(true), 30_000);
     return () => clearInterval(interval);
   }, [load]);
 
@@ -66,35 +64,12 @@ export default function SearchScreen() {
 
   const Header = (
     <>
-      <View style={styles.filterBar}>
-        <Ionicons name="calendar-outline" size={18} color={Colors.muted} style={{ marginRight: 10 }} />
-        <View style={styles.dateGroup}>
-          <Text style={styles.dateLabel}>Inicio</Text>
-          <TextInput
-            style={styles.dateInput}
-            value={fechaInicio}
-            onChangeText={setFechaInicio}
-            placeholder="AAAA-MM-DD"
-            placeholderTextColor={Colors.muted}
-            keyboardType="numeric"
-          />
-        </View>
-
-        <View style={styles.dateSep} />
-
-        <Ionicons name="flag-outline" size={18} color={Colors.muted} style={{ marginHorizontal: 8 }} />
-        <View style={styles.dateGroup}>
-          <Text style={styles.dateLabel}>Fin</Text>
-          <TextInput
-            style={styles.dateInput}
-            value={fechaFin}
-            onChangeText={setFechaFin}
-            placeholder="AAAA-MM-DD"
-            placeholderTextColor={Colors.muted}
-            keyboardType="numeric"
-          />
-        </View>
-      </View>
+      <DateRangePicker
+        fechaInicio={fechaInicio}
+        fechaFin={fechaFin}
+        onChangeFechaInicio={setFechaInicio}
+        onChangeFechaFin={setFechaFin}
+      />
 
       <View style={styles.summaryRow}>
         <Text style={styles.summaryCount}>
@@ -156,14 +131,8 @@ export default function SearchScreen() {
 }
 
 const styles = StyleSheet.create({
-  bg:         { flex: 1, backgroundColor: Colors.bg },
-  list:       { padding: 16 },
-
-  filterBar:  { backgroundColor: Colors.card, marginHorizontal: 16, marginTop: 12, marginBottom: 4, borderRadius: 16, flexDirection: 'row', alignItems: 'center', padding: 14, borderWidth: 1, borderColor: Colors.border },
-  dateGroup:  { flex: 1 },
-  dateLabel:  { fontSize: 11, color: Colors.muted, fontWeight: '600', marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.5 },
-  dateInput:  { color: Colors.text, fontSize: 15, fontWeight: '600', padding: 0 },
-  dateSep:    { width: 1, height: 36, backgroundColor: Colors.border, marginHorizontal: 8 },
+  bg:   { flex: 1, backgroundColor: Colors.bg },
+  list: { padding: 16 },
 
   summaryRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 16, marginVertical: 12 },
   summaryCount: { color: Colors.muted, fontSize: 14, fontWeight: '600' },

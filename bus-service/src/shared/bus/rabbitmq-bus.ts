@@ -136,11 +136,13 @@ export async function publishEvent(
 
 function toRoutingKey(tipo: EventType): string {
   const map: Record<EventType, string> = {
-    'RESERVA_CREADA':       'reserva.creada',
-    'RESERVA_CANCELADA':    'reserva.cancelada',
-    'ALQUILER_INICIADO':    'alquiler.iniciado',
-    'ALQUILER_CANCELADO':   'alquiler.cancelado',
-    'DEVOLUCION_REGISTRADA':'devolucion.registrada',
+    'RESERVA_CREADA':        'reserva.creada',
+    'RESERVA_CANCELADA':     'reserva.cancelada',
+    'RESERVA_ACTUALIZADA':   'reserva.actualizada',
+    'ALQUILER_INICIADO':     'alquiler.iniciado',
+    'ALQUILER_CANCELADO':    'alquiler.cancelado',
+    'DEVOLUCION_REGISTRADA': 'devolucion.registrada',
+    'VEHICULO_ACTUALIZADO':  'vehiculo.actualizado',
   };
   return map[tipo] ?? tipo.toLowerCase().replace(/_/g, '.');
 }

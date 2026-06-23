@@ -15,9 +15,10 @@ const authLimiter = rateLimit({
 
 export function createAuthRouter(controller: AuthController): Router {
   const router = Router();
-  router.post('/register', authLimiter, validateBody(RegisterSchema), controller.register);
-  router.post('/login',    authLimiter, validateBody(LoginSchema),    controller.login);
-  router.get('/me',        authenticate,                               controller.me);
-  router.patch('/me',      authenticate, validateBody(UpdateProfileSchema), controller.updateMe);
+  router.post('/register',      authLimiter, validateBody(RegisterSchema),      controller.register);
+  router.post('/login',         authLimiter, validateBody(LoginSchema),         controller.login);
+  router.get('/me',             authenticate,                                    controller.me);
+  router.patch('/me',           authenticate, validateBody(UpdateProfileSchema), controller.updateMe);
+  router.post('/refresh-token', authenticate,                                    controller.refreshToken);
   return router;
 }

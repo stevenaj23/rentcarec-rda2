@@ -3,6 +3,7 @@ import app from './app.js';
 import { startFinancieroGrpcServer } from './grpc/financiero.grpc-server.js';
 import { pagoRepository } from './shared/container.js';
 import { logger } from './shared/logger.js';
+import { startFinancieroConsumer } from './events/financiero.consumer.js';
 
 const HTTP_PORT = Number(process.env.PORT ?? 3005);
 const GRPC_PORT = Number(process.env.GRPC_PORT ?? 5005);
@@ -12,3 +13,4 @@ app.listen(HTTP_PORT, () => {
 });
 
 startFinancieroGrpcServer(pagoRepository, GRPC_PORT);
+startFinancieroConsumer();

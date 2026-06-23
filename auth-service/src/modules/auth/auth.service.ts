@@ -68,4 +68,11 @@ export class AuthService {
     if (!user) throw new NotFoundException('Usuario', userId);
     return this.usuarioRepository.update(userId, dto);
   }
+
+  async refreshToken(userId: string) {
+    const user = await this.usuarioRepository.findById(userId);
+    if (!user || !user.isActive) throw new ValidationException('Usuario no válido');
+    const token = this.generateToken({ id: user.id, email: user.email, role: user.role ?? 'CLIENTE' });
+    return { token };
+  }
 }

@@ -103,3 +103,10 @@ enum vehicle_status {
   MANTENIMIENTO
   INACTIVO
 }
+
+model EventoProcesado {
+  eventId     String   @id @map("event_id")
+  procesadoAt DateTime @default(now()) @map("procesado_at")
+
+  @@map("eventos_procesados")
+}

@@ -2,32 +2,49 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { ReservaRepository }  from '../reservas/reserva.repository.js';
 import { AlquilerRepository } from '../alquileres/alquiler.repository.js';
 import prisma from '../../shared/database/prisma.js';
-
-const INVENTARIO_URL = process.env['INVENTARIO_SERVICE_URL'] ?? 'http://localhost:3002';
+import { getInventarioClient, InventarioUnavailableError } from '../../grpc/inventario.grpc-client.js';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-async function fetchVehiculo(vehiculoId: string): Promise<any | null> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 5_000);
+type VehiculoData = { id: string; status: string; precio_dia: number; agencia_id: string; placa: string };
+
+// Retorna null si el vehículo no existe.
+// Intenta primero gRPC; si el circuit breaker está abierto cae a HTTP.
+async function fetchVehiculo(vehiculoId: string): Promise<VehiculoData | null> {
+  // ── Intento 1: gRPC ───────────────────────────────────────────────────────
   try {
-    const res = await fetch(
-      `${INVENTARIO_URL}/api/v1/stevenariel/vehiculos/${vehiculoId}`,
-      { signal: controller.signal },
-    );
+    const result = await getInventarioClient().getVehiculo(vehiculoId);
+    if (!result.found) return null;
+    return result;
+  } catch (err) {
+    if (!(err instanceof InventarioUnavailableError)) throw err;
+    // gRPC no disponible — continuar con fallback HTTP
+  }
+
+  // ── Intento 2: HTTP fallback (cuando gRPC está caído) ────────────────────
+  const base = process.env['INVENTARIO_SERVICE_URL'] ?? 'http://rentcar-inventario';
+  try {
+    const res = await fetch(`${base}/api/v1/stevenariel/vehiculos/${vehiculoId}`, {
+      signal: AbortSignal.timeout(5_000),
+    });
     if (!res.ok) return null;
-    const body = await res.json() as { success: boolean; data: any };
-    return body.success ? body.data : null;
-  } catch { return null; }
-  finally { clearTimeout(timer); }
+    const body = await res.json() as any;
+    if (!body?.success || !body?.data) return null;
+    const v = body.data;
+    return {
+      id:         v.id         as string,
+      status:     v.status     as string,
+      precio_dia: Number(v.precioDia ?? v.precio_dia ?? 0),
+      agencia_id: (v.agenciaId ?? '') as string,
+      placa:      (v.placa     ?? '') as string,
+    };
+  } catch {
+    throw new InventarioUnavailableError();
+  }
 }
 
-function patchVehiculoStatus(vehiculoId: string, status: string): void {
-  fetch(`${INVENTARIO_URL}/api/v1/stevenariel/vehiculos/booking/${vehiculoId}/status`, {
-    method:  'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ status }),
-  }).catch(() => {});
+function patchVehiculoStatus(vehiculoId: string, status: string, kilometraje = 0): void {
+  getInventarioClient().updateVehiculoStatus(vehiculoId, status, kilometraje).catch(() => {});
 }
 
 function generarCodigo(): string {
@@ -137,7 +154,16 @@ export function createReservaBookingRouter(reservaRepo: ReservaRepository): Rout
       const { dias } = fechaResult;
 
       // 3. Vehicle fetch + availability
-      const vehiculo = await fetchVehiculo(vehiculoId);
+      let vehiculo;
+      try {
+        vehiculo = await fetchVehiculo(vehiculoId);
+      } catch (err) {
+        if (err instanceof InventarioUnavailableError) {
+          res.status(503).json({ success: false, error: { code: 'SERVICE_UNAVAILABLE', message: 'Servicio de inventario no disponible, intente más tarde' } });
+          return;
+        }
+        throw err;
+      }
       if (!vehiculo) {
         res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: `Vehiculo ${vehiculoId} no encontrado` } });
         return;
@@ -148,7 +174,7 @@ export function createReservaBookingRouter(reservaRepo: ReservaRepository): Rout
       }
 
       // 4. Price validation — Fix W-4
-      const precioDia = Number(vehiculo.precioDia);
+      const precioDia = vehiculo.precio_dia;
       if (!Number.isFinite(precioDia) || precioDia <= 0) {
         res.status(422).json({ success: false, error: { code: 'VEHICLE_PRICE_MISSING', message: 'El vehículo no tiene precio por día configurado' } });
         return;
@@ -163,7 +189,7 @@ export function createReservaBookingRouter(reservaRepo: ReservaRepository): Rout
         return;
       }
 
-      const agenciaId = bodyAgenciaId ?? vehiculo.agenciaId;
+      const agenciaId = bodyAgenciaId ?? vehiculo.agencia_id;
       if (!agenciaId) {
         res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'No se pudo determinar agenciaId del vehículo' } });
         return;
@@ -304,11 +330,7 @@ export function createAlquilerBookingRouter(alquilerRepo: AlquilerRepository): R
       });
 
       if (reserva.vehiculoId) {
-        fetch(`${INVENTARIO_URL}/api/v1/stevenariel/vehiculos/${reserva.vehiculoId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', Authorization: req.headers.authorization ?? '' },
-          body: JSON.stringify({ status: 'EN_USO' }),
-        }).catch(() => {});
+        patchVehiculoStatus(reserva.vehiculoId, 'EN_USO');
       }
 
       const result = await alquilerRepo.findById(alquiler.id);
@@ -364,11 +386,7 @@ export function createDevolucionBookingRouter(alquilerRepo: AlquilerRepository):
       });
 
       if (reservaObj?.vehiculoId) {
-        fetch(`${INVENTARIO_URL}/api/v1/stevenariel/vehiculos/${reservaObj.vehiculoId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', Authorization: req.headers.authorization ?? '' },
-          body: JSON.stringify({ status: 'DISPONIBLE', kilometraje: kmEntrada }),
-        }).catch(() => {});
+        patchVehiculoStatus(reservaObj.vehiculoId, 'DISPONIBLE', kmEntrada ?? 0);
       }
 
       res.status(201).json({ success: true, data: devolucion });

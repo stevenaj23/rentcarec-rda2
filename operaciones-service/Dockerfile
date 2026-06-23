@@ -16,4 +16,4 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/src/grpc ./src/grpc
 EXPOSE 3004
-CMD ["sh", "-c", "node_modules/.bin/prisma db push --skip-generate && node dist/server.js"]
+CMD ["sh", "-c", "node_modules/.bin/prisma db push --skip-generate || echo '[operaciones] db push fallido, continuando...'; node dist/server.js"]

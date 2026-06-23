@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { publishEvent, getEventLog } from '../../shared/bus/service-bus.js';
+import { publishEvent, getEventLog } from '../../shared/bus/rabbitmq-bus.js';
 import { getOperacionesClient } from '../../grpc/operaciones.grpc-client.js';
 
 function handleGrpcResponse(res: Response, result: { success: boolean; data_json: string; error_message: string; error_code: number }) {
